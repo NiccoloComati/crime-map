@@ -11,5 +11,5 @@ pip install -r requirements.txt
 streamlit run app/crime_map_app.py
 ```
 
-The app reads data from the repo root (Boston and Cambridge
+The app reads data from the repo root (Boston, Cambridge, and Somerville
 data and shapefiles).

@@ -11,11 +11,11 @@ from maps import build_choropleth_map, clamp_dates, compute_relative_rates, filt
 st.set_page_config(page_title="Crime Map", layout="wide")
 
 st.title("Metro Crime Map")
-st.caption("Interactive neighborhood crime rates for Cambridge and Boston.")
+st.caption("Interactive neighborhood crime rates for Cambridge, Boston, and Somerville.")
 
 municipality = st.selectbox(
     "City",
-    options=["All Metro", "Cambridge", "Boston"],
+    options=["All Metro", "Cambridge", "Boston", "Somerville"],
     index=0,
 )
 

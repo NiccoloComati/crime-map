@@ -3,6 +3,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 CAMBRIDGE_DIR = BASE_DIR / "Cambridge"
 BOSTON_DIR = BASE_DIR / "Boston"
+SOMERVILLE_DIR = BASE_DIR / "Somerville"
+MA_CENSUS_DIR = BASE_DIR / "MA Census Data"
 
 CAMBRIDGE_CRIME_CSV = CAMBRIDGE_DIR / "Crime_Reports_20250112.csv"
 CAMBRIDGE_SHAPEFILE = CAMBRIDGE_DIR / "BOUNDARY_CDDNeighborhoods.shp" / "BOUNDARY_CDDNeighborhoods.shp"
@@ -13,6 +15,12 @@ BOSTON_SHAPEFILE = (
     BOSTON_DIR
     / "Boston_Neighborhood_Boundaries_Approximated_by_2020_Census_Block_Groups.shp"
 )
+
+SOMERVILLE_CRIME_CSV = SOMERVILLE_DIR / "Police_Data__Crime_Reports_20250114.csv"
+SOMERVILLE_SHAPEFILE = SOMERVILLE_DIR / "Neighborhoods.shp"
+MA_CENSUS_BLOCKS = MA_CENSUS_DIR / "CENSUS2020BLOCKS_POLY.shp"
+
+SOMERVILLE_TOTAL_POP_2022 = 80464
 
 CAMBRIDGE_POP_2020 = {
     "East Cambridge": 13246,
@@ -271,4 +279,45 @@ BOSTON_NEIGHBORHOOD_NAME_MAP = {
     "Chinatown": "Downtown",
     "Leather District": "Downtown",
     "Bay Village": "South End",
+}
+
+SOMERVILLE_CRIME_MACROS = {
+    "Aggravated Assault": "Violent Crime",
+    "Simple Assault": "Violent Crime",
+    "Robbery": "Violent Crime",
+    "Murder/Nonnegligent Manslaghter": "Violent Crime",
+    "Kidnapping/Abduction": "Violent Crime",
+    "Human Trafficking": "Violent Crime",
+    "Sex Offenses": "Violent Crime",
+    "Weapon Law Violation": "Violent Crime",
+    "Arson": "Property Crime",
+    "All Other Larceny": "Property Crime",
+    "Burglary/Breaking And Entering": "Property Crime",
+    "Buying, Receiving, Selling Etc": "Property Crime",
+    "Destruction/Vandalism Property": "Property Crime",
+    "Motor Vehicle Theft": "Property Crime",
+    "Other Criminal Mv Offenses": "Property Crime",
+    "Pocket-Picking": "Property Crime",
+    "Shoplifting": "Property Crime",
+    "Theft From Building": "Property Crime",
+    "Theft From Coin Op Mach/Device": "Property Crime",
+    "Theft From Motor Vehicle": "Property Crime",
+    "Theft Of M/V Parts/Accessories": "Property Crime",
+    "Drug/Narcotic Violations": "Drug Offense",
+    "Counterfeiting/Forgery": "White-Collar Crime",
+    "Credit Card/Atm Machine Fraud": "White-Collar Crime",
+    "Embezzlement": "White-Collar Crime",
+    "Extortion/Blackmail": "White-Collar Crime",
+    "False Pretenses/Swindle/Game": "White-Collar Crime",
+    "Impersonation": "White-Collar Crime",
+    "Disorderly Conduct": "Public Order Crime",
+    "Liquor Law Violations": "Public Order Crime",
+    "Prostitution Offenses": "Public Order Crime",
+    "Trespass Of Real Property": "Public Order Crime",
+    "Driving Under The Influence": "Traffic Violation",
+    "Family Offenses, Nonviolent": "Personal Crime",
+    "Intimidation": "Personal Crime",
+    "Peeping Tom": "Personal Crime",
+    "Pornography/Obscene Material": "Personal Crime",
+    "All Other Offenses": "Miscellaneous",
 }

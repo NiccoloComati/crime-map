@@ -16,6 +16,11 @@ from config import (
     CAMBRIDGE_NEIGHBORHOOD_NAME_MAP,
     CAMBRIDGE_POP_2020,
     CAMBRIDGE_SHAPEFILE,
+    MA_CENSUS_BLOCKS,
+    SOMERVILLE_CRIME_CSV,
+    SOMERVILLE_CRIME_MACROS,
+    SOMERVILLE_SHAPEFILE,
+    SOMERVILLE_TOTAL_POP_2022,
 )
 
 
@@ -69,6 +74,56 @@ def load_boston_geo() -> gpd.GeoDataFrame:
     return geo_df
 
 
+def _build_area_weighted_population(geo_df: gpd.GeoDataFrame, total_population: int) -> dict[str, float]:
+    area_df = geo_df.to_crs(epsg=26986)
+    area_df["area"] = area_df.geometry.area
+    total_area = area_df["area"].sum()
+    if total_area == 0:
+        return {name: float(total_population) for name in geo_df["NBHD"].dropna().unique()}
+    area_df["pop"] = area_df["area"] / total_area * total_population
+    return area_df.set_index("NBHD")["pop"].to_dict()
+
+
+@lru_cache(maxsize=1)
+def load_somerville_geo() -> gpd.GeoDataFrame:
+    geo_df = gpd.read_file(SOMERVILLE_SHAPEFILE)
+    if geo_df.crs != "EPSG:4326":
+        geo_df = geo_df.to_crs(epsg=4326)
+    geo_df["Mapped_Name"] = geo_df["NBHD"]
+    return geo_df
+
+
+@lru_cache(maxsize=1)
+def load_somerville_crime() -> pd.DataFrame:
+    df = pd.read_csv(SOMERVILLE_CRIME_CSV)
+    day_month = df["Day and Month Reported"].fillna("").astype(str).str.strip()
+    year_part = df["Year Reported"].astype(str)
+    df["Date"] = day_month.where(day_month.ne(""), "01/01") + "/" + year_part
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df[["Date", "Offense Type", "Block Code"]].copy()
+    df["Crime"] = df["Offense Type"].astype(str).str.title()
+    df["Macro Crime"] = df["Crime"].map(SOMERVILLE_CRIME_MACROS)
+    df["Block Code"] = df["Block Code"].astype(str).str.rstrip(".0")
+
+    blocks = gpd.read_file(MA_CENSUS_BLOCKS)
+    somerville_blocks = blocks[blocks["TOWN"] == "SOMERVILLE"].copy()
+    if somerville_blocks.crs != "EPSG:4326":
+        somerville_blocks = somerville_blocks.to_crs(epsg=4326)
+
+    df = df.merge(
+        somerville_blocks[["GEOID20", "geometry"]],
+        left_on="Block Code",
+        right_on="GEOID20",
+        how="left",
+    )
+    df = gpd.GeoDataFrame(df, geometry="geometry")
+    geo_df = load_somerville_geo()
+    df = gpd.sjoin(df, geo_df[["NBHD", "geometry"]], how="left", predicate="intersects")
+    df = df.rename(columns={"NBHD": "Neighborhood"})
+    df = df.drop(columns=["geometry", "Block Code", "GEOID20", "index_right"], errors="ignore")
+    return df[["Date", "Crime", "Macro Crime", "Neighborhood"]]
+
+
 def get_cambridge_bundle() -> dict[str, object]:
     return {
         "crime": load_cambridge_crime(),
@@ -89,29 +144,49 @@ def get_boston_bundle() -> dict[str, object]:
     }
 
 
+def get_somerville_bundle() -> dict[str, object]:
+    geo_df = load_somerville_geo()
+    population = _build_area_weighted_population(geo_df, SOMERVILLE_TOTAL_POP_2022)
+    return {
+        "crime": load_somerville_crime(),
+        "geo": geo_df,
+        "population": population,
+        "zoom": 13,
+        "population_year": "2022 (area-weighted)",
+    }
+
+
 def get_all_metro_bundle() -> dict[str, object]:
     cambridge = get_cambridge_bundle()
     boston = get_boston_bundle()
-    crime_data = pd.concat([cambridge["crime"], boston["crime"]], ignore_index=True)
+    somerville = get_somerville_bundle()
+    crime_data = pd.concat(
+        [cambridge["crime"], boston["crime"], somerville["crime"]], ignore_index=True
+    )
 
     geo_df = gpd.GeoDataFrame(
         pd.concat(
             [
                 cambridge["geo"].assign(City="Cambridge"),
                 boston["geo"].assign(City="Boston"),
+                somerville["geo"].assign(City="Somerville"),
             ],
             ignore_index=True,
         ),
         crs=cambridge["geo"].crs,
     )
 
-    population = {**cambridge["population"], **boston["population"]}
+    population = {
+        **cambridge["population"],
+        **boston["population"],
+        **somerville["population"],
+    }
     return {
         "crime": crime_data,
         "geo": geo_df,
         "population": population,
         "zoom": 11.5,
-        "population_year": "2020 & 2019",
+        "population_year": "2020, 2019, 2022",
     }
 
 
@@ -120,4 +195,6 @@ def get_bundle(municipality: str) -> dict[str, object]:
         return get_cambridge_bundle()
     if municipality == "Boston":
         return get_boston_bundle()
+    if municipality == "Somerville":
+        return get_somerville_bundle()
     return get_all_metro_bundle()
