@@ -1,11 +1,23 @@
 from datetime import date
+from pathlib import Path
+import sys
 
 import pandas as pd
 import streamlit as st
 from streamlit.components.v1 import html
 
-from data_sources import get_bundle
-from maps import build_choropleth_map, clamp_dates, compute_relative_rates, filter_crime_by_date
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from crime_map import (  # noqa: E402
+    build_choropleth_map,
+    clamp_dates,
+    compute_relative_rates,
+    filter_crime_by_date,
+    get_bundle,
+    get_supported_municipalities,
+)
 
 
 st.set_page_config(page_title="Crime Map", layout="wide")
@@ -15,7 +27,7 @@ st.caption("Interactive neighborhood crime rates for Cambridge, Boston, and Some
 
 municipality = st.selectbox(
     "City",
-    options=["All Metro", "Cambridge", "Boston", "Somerville"],
+    options=get_supported_municipalities(),
     index=0,
 )
 

@@ -1,5 +1,0 @@
-folium
-geopandas
-openpyxl
-pandas
-streamlit

@@ -1,34 +1,22 @@
 from __future__ import annotations
 
-from datetime import date
-
 import folium
+import geopandas as gpd
+import numpy as np
 import pandas as pd
 
-
-def clamp_dates(start_date: date, end_date: date) -> tuple[date, date]:
-    if start_date and end_date and start_date > end_date:
-        return end_date, start_date
-    return start_date, end_date
+AREA_CRS = "EPSG:26986"
+TARGET_CRS = "EPSG:4326"
 
 
-def filter_crime_by_date(crime_df: pd.DataFrame, start_date: date, end_date: date) -> pd.DataFrame:
-    start_dt = pd.to_datetime(start_date)
-    end_dt = pd.to_datetime(end_date)
-    return crime_df[(crime_df["Date"] >= start_dt) & (crime_df["Date"] <= end_dt)].copy()
-
-
-def compute_relative_rates(
-    filtered_crime: pd.DataFrame, population: dict[str, float]
-) -> pd.DataFrame:
-    crime_table_macro = (
-        filtered_crime.groupby(["Neighborhood", "Macro Crime"]).size().unstack("Macro Crime").fillna(0)
-    )
-    return crime_table_macro.div(pd.Series(population), axis=0)
+def _map_center(geo_df: gpd.GeoDataFrame) -> tuple[float, float]:
+    projected = geo_df.to_crs(AREA_CRS)
+    centroids = gpd.GeoSeries(projected.geometry.centroid, crs=AREA_CRS).to_crs(TARGET_CRS)
+    return centroids.y.mean(), centroids.x.mean()
 
 
 def build_choropleth_map(
-    geo_df: pd.DataFrame,
+    geo_df: gpd.GeoDataFrame,
     rates_df: pd.DataFrame,
     population: dict[str, float],
     selected_macro: str,
@@ -45,10 +33,13 @@ def build_choropleth_map(
     geo_df_selected = geo_df_selected.merge(
         pop_df, how="left", left_on="Mapped_Name", right_on="Neighborhood"
     )
-    geo_df_selected[selected_macro] = geo_df_selected[selected_macro].round(5)
+    geo_df_selected[selected_macro] = pd.to_numeric(
+        geo_df_selected[selected_macro], errors="coerce"
+    ).replace([np.inf, -np.inf], np.nan)
+    geo_df_selected[selected_macro] = geo_df_selected[selected_macro].fillna(0.0).round(5)
 
     geo_json = geo_df_selected.to_json()
-    center_coords = geo_df.geometry.centroid.y.mean(), geo_df.geometry.centroid.x.mean()
+    center_coords = _map_center(geo_df)
     folium_map = folium.Map(location=center_coords, zoom_start=zoom_start)
 
     folium.Choropleth(
@@ -64,7 +55,7 @@ def build_choropleth_map(
 
     folium.GeoJson(
         geo_json,
-        style_function=lambda x: {"fillColor": "transparent", "color": "transparent"},
+        style_function=lambda _: {"fillColor": "transparent", "color": "transparent"},
         tooltip=folium.GeoJsonTooltip(
             fields=["Mapped_Name", selected_macro, "Population"],
             aliases=["Neighborhood:", f"{selected_macro} Score:", f"Population ({population_year}):"],

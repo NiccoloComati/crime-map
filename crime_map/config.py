@@ -7,20 +7,19 @@ SOMERVILLE_DIR = BASE_DIR / "Somerville"
 MA_CENSUS_DIR = BASE_DIR / "MA Census Data"
 
 CAMBRIDGE_CRIME_CSV = CAMBRIDGE_DIR / "Crime_Reports_20250112.csv"
-CAMBRIDGE_SHAPEFILE = CAMBRIDGE_DIR / "BOUNDARY_CDDNeighborhoods.shp" / "BOUNDARY_CDDNeighborhoods.shp"
+CAMBRIDGE_SHAPEFILE = (
+    CAMBRIDGE_DIR / "BOUNDARY_CDDNeighborhoods.shp" / "BOUNDARY_CDDNeighborhoods.shp"
+)
 
 BOSTON_CRIME_CSV = BOSTON_DIR / "Boston_Incidents_View_3136327856209597499.csv"
 BOSTON_POP_XLSM = BOSTON_DIR / "2015-2019_neighborhood_tables_2021.12.21.xlsm"
 BOSTON_SHAPEFILE = (
-    BOSTON_DIR
-    / "Boston_Neighborhood_Boundaries_Approximated_by_2020_Census_Block_Groups.shp"
+    BOSTON_DIR / "Boston_Neighborhood_Boundaries_Approximated_by_2020_Census_Block_Groups.shp"
 )
 
 SOMERVILLE_CRIME_CSV = SOMERVILLE_DIR / "Police_Data__Crime_Reports_20250114.csv"
 SOMERVILLE_SHAPEFILE = SOMERVILLE_DIR / "Neighborhoods.shp"
 MA_CENSUS_BLOCKS = MA_CENSUS_DIR / "CENSUS2020BLOCKS_POLY.shp"
-
-SOMERVILLE_TOTAL_POP_2022 = 80464
 
 CAMBRIDGE_POP_2020 = {
     "East Cambridge": 13246,

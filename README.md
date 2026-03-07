@@ -1,7 +1,10 @@
-# Crime Map App
+# Crime Map
 
-This folder contains an app-style rewrite of the crime map notebook, built with
-modular Python files and a Streamlit entrypoint.
+This repo now has one canonical implementation of the crime map pipeline.
+
+- Shared logic lives in `crime_map/`.
+- The Streamlit UI lives at `app/crime_map_app.py`.
+- The historical notebook is preserved at `0. Test/Crime Map - Notebook.ipynb`, with newer sections appended below the original work.
 
 ## Run locally
 
@@ -11,5 +14,4 @@ pip install -r requirements.txt
 streamlit run app/crime_map_app.py
 ```
 
-The app reads data from the repo root (Boston, Cambridge, and Somerville
-data and shapefiles).
+The app and notebook both read the same code and the same repo-local raw data.
