@@ -21,17 +21,20 @@ from crime_map import (  # noqa: E402
 
 
 st.set_page_config(page_title="Crime Map", layout="wide")
-
 st.title("Metro Crime Map")
-st.caption("Interactive neighborhood crime rates for Cambridge, Boston, and Somerville.")
+st.caption(
+    "Interactive neighborhood crime rates for Cambridge, Boston, and Somerville "
+    "using live official municipal/census data sources."
+)
 
 municipality = st.selectbox(
     "City",
     options=get_supported_municipalities(),
     index=0,
 )
+with st.spinner("Loading live datasets..."):
+    bundle = get_bundle(municipality)
 
-bundle = get_bundle(municipality)
 crime_df = bundle["crime"]
 geo_df = bundle["geo"]
 population = bundle["population"]
@@ -40,15 +43,16 @@ population_year = bundle["population_year"]
 
 macro_options = sorted(crime_df["Macro Crime"].dropna().unique().tolist())
 if not macro_options:
-    st.error("No macro crime categories found for the selected city.")
+    st.error("No macro crime categories were found for the selected city.")
     st.stop()
+
 default_macro = "Violent Crime" if "Violent Crime" in macro_options else macro_options[0]
 selected_macro = st.selectbox("Crime", options=macro_options, index=macro_options.index(default_macro))
 
 min_date = crime_df["Date"].min().date()
 max_date = crime_df["Date"].max().date()
-default_start = max(min_date, date(2015, 1, 1))
-default_end = min(max_date, date(2025, 1, 7))
+default_start = max(min_date, date(max_date.year - 5, 1, 1))
+default_end = max_date
 
 col1, col2 = st.columns(2)
 with col1:
@@ -77,4 +81,4 @@ folium_map = build_choropleth_map(
     population_year=population_year,
 )
 
-html(folium_map._repr_html_(), height=700, width=None)
+html(folium_map._repr_html_(), height=740, width=None)

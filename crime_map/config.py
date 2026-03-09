@@ -1,41 +1,51 @@
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-CAMBRIDGE_DIR = BASE_DIR / "Cambridge"
-BOSTON_DIR = BASE_DIR / "Boston"
-SOMERVILLE_DIR = BASE_DIR / "Somerville"
-MA_CENSUS_DIR = BASE_DIR / "MA Census Data"
+TARGET_CRS = "EPSG:4326"
+AREA_CRS = "EPSG:26986"
 
-CAMBRIDGE_CRIME_CSV = CAMBRIDGE_DIR / "Crime_Reports_20250112.csv"
-CAMBRIDGE_SHAPEFILE = (
-    CAMBRIDGE_DIR / "BOUNDARY_CDDNeighborhoods.shp" / "BOUNDARY_CDDNeighborhoods.shp"
+CACHE_DIR = Path(__file__).resolve().parents[1] / ".cache" / "crime_map"
+
+CAMBRIDGE_CRIME_DATASET_ID = "xuad-73uj"
+CAMBRIDGE_CRIME_DOMAIN = "data.cambridgema.gov"
+CAMBRIDGE_NEIGHBORHOODS_URL = (
+    "https://data.cambridgema.gov/api/views/k3pi-9823/rows.geojson?accessType=DOWNLOAD"
 )
 
-BOSTON_CRIME_CSV = BOSTON_DIR / "Boston_Incidents_View_3136327856209597499.csv"
-BOSTON_POP_XLSM = BOSTON_DIR / "2015-2019_neighborhood_tables_2021.12.21.xlsm"
-BOSTON_SHAPEFILE = (
-    BOSTON_DIR / "Boston_Neighborhood_Boundaries_Approximated_by_2020_Census_Block_Groups.shp"
+BOSTON_CRIME_PACKAGE_ID = "6220d948-eae2-4e4b-8723-2dc8e67722a3"
+BOSTON_CRIME_PACKAGE_URL = "https://data.boston.gov/api/3/action/package_show"
+BOSTON_NEIGHBORHOODS_URL = (
+    "https://data.boston.gov/dataset/2513408b-b130-43f6-83d6-0f896ff3b2cc/"
+    "resource/37c3db4c-e1c8-44b2-83ef-e4f6ada613ed/download/census2020_bg_neighborhoods.json"
 )
 
-SOMERVILLE_CRIME_CSV = SOMERVILLE_DIR / "Police_Data__Crime_Reports_20250114.csv"
-SOMERVILLE_SHAPEFILE = SOMERVILLE_DIR / "Neighborhoods.shp"
-MA_CENSUS_BLOCKS = MA_CENSUS_DIR / "CENSUS2020BLOCKS_POLY.shp"
+SOMERVILLE_CRIME_DATASET_ID = "aghs-hqvg"
+SOMERVILLE_CRIME_DOMAIN = "data.somervillema.gov"
+SOMERVILLE_NEIGHBORHOODS_URL = (
+    "https://data.somervillema.gov/api/views/n5md-vqta/files/"
+    "13bc2d2b-77b1-4221-a24c-dd376f4834db"
+)
 
-CAMBRIDGE_POP_2020 = {
-    "East Cambridge": 13246,
-    "MIT": 6238,
-    "Inman/Harrington": 6718,
-    "Area 4": 7280,
-    "Cambridgeport": 13083,
-    "Mid-Cambridge": 13974,
-    "Riverside": 12114,
-    "Agassiz": 5146,
-    "Peabody": 12471,
-    "West Cambridge": 8450,
-    "North Cambridge": 15372,
-    "Highlands": 1646,
-    "Strawberry Hill": 2665,
+CENSUS_BLOCK_GEOMETRY_URLS = {
+    "017": (
+        "https://www2.census.gov/geo/tiger/TIGER2020PL/STATE/25_MASSACHUSETTS/"
+        "25017/tl_2020_25017_tabblock20.zip"
+    ),
+    "025": (
+        "https://www2.census.gov/geo/tiger/TIGER2020PL/STATE/25_MASSACHUSETTS/"
+        "25025/tl_2020_25025_tabblock20.zip"
+    ),
 }
+CENSUS_BLOCK_POPULATION_API = (
+    "https://api.census.gov/data/2020/dec/pl?get=P1_001N&for=block:*&in=state:25%20county:{county}"
+)
+
+MUNICIPALITY_ZOOM = {
+    "Cambridge": 13.0,
+    "Boston": 12.0,
+    "Somerville": 13.0,
+    "All Metro": 11.5,
+}
+POPULATION_YEAR_LABEL = "2020 Census (P.L. 94-171 block population, area-allocated)"
 
 CAMBRIDGE_CRIME_MACROS = {
     "Aggravated Assault": "Violent Crime",
