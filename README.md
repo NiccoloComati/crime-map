@@ -72,8 +72,8 @@ By default the frontend expects the API at `http://127.0.0.1:8000`.
 
 Deployment is now split:
 
-- frontend: Vercel
-- API: Render
+- frontend: Vercel Hobby
+- API: Render Free by default
 
 Exact project files and steps are in `DEPLOY.md`.
 
