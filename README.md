@@ -1,16 +1,21 @@
 # Crime Map
 
-Single canonical crime-map pipeline for Cambridge, Boston, and Somerville.
+Canonical crime-map pipeline for Cambridge, Boston, and Somerville, backed by live official web sources.
 
-This refactor removes local static data dependencies from active code paths and uses
-live official web sources with local caching.
+The active app stack is:
 
-## Project structure
+- `api/`: FastAPI backend for a real browser app
+- `frontend/`: Next.js frontend with Leaflet rendering
 
-- `crime_map/`: shared data ingestion, normalization, metrics, and map rendering
-- `app/crime_map_app.py`: Streamlit UI
-- `notebook/Crime Map - Notebook.ipynb`: function-driven analysis playground
-- `old/`: archived legacy local datasets and prior notebook snapshot
+The old Streamlit UI is archived under `old/legacy-streamlit-app/` and is no longer part of the active deployment path.
+
+## Architecture
+
+- `crime_map/`: shared ingestion, normalization, metrics, caching, and payload shaping
+- `api/main.py`: HTTP API over the shared Python crime pipeline
+- `frontend/`: React/Next client that consumes the API and renders the map in-browser
+- `notebook/Crime Map - Notebook.ipynb`: local analysis notebook
+- `old/`: archived local datasets, old notebook snapshot, and retired Streamlit UI
 
 ## Live data sources
 
@@ -24,15 +29,56 @@ live official web sources with local caching.
 
 Population is area-allocated from census blocks to city neighborhoods for all municipalities.
 
-## Run locally
+## Local development
+
+### Backend API
 
 ```powershell
 pip install -r requirements.txt
-streamlit run app/crime_map_app.py
+python -m uvicorn api.main:app --reload
 ```
+
+To allow deployed frontend domains, set:
+
+- `CRIME_MAP_ALLOWED_ORIGINS`: comma-separated exact origins
+- `CRIME_MAP_ALLOWED_ORIGIN_REGEX`: optional regex for preview domains
+
+Useful endpoints:
+
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/api/v1/municipalities`
+- `http://127.0.0.1:8000/api/v1/municipalities/All%20Metro/metadata`
+
+### Frontend web app
+
+Requirements:
+
+- Node.js 20+
+
+```powershell
+cd frontend
+copy .env.example .env.local
+npm install
+npm run dev
+```
+
+Then open:
+
+- `http://127.0.0.1:3000`
+
+By default the frontend expects the API at `http://127.0.0.1:8000`.
+
+## Deployment
+
+Deployment is now split:
+
+- frontend: Vercel
+- API: Render
+
+Exact project files and steps are in `DEPLOY.md`.
 
 ## Notes
 
 - Downloads are cached under `.cache/crime_map/`.
-- The map keys by `City::Neighborhood` to avoid cross-city key collisions and improve
-  reliability for Boston and All Metro rendering.
+- The data key is `City::Neighborhood` to avoid cross-city collisions and improve Boston and All Metro rendering reliability.
+- The API and notebook reuse the same shared Python pipeline, so there is one canonical data flow instead of duplicated logic.

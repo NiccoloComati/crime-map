@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: crime-map-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: CRIME_MAP_ALLOWED_ORIGINS
+        sync: false
+      - key: CRIME_MAP_ALLOWED_ORIGIN_REGEX
+        sync: false

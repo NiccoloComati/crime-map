@@ -1,7 +1,5 @@
-folium
 fastapi
 geopandas
-ipywidgets
 pandas
 requests
 uvicorn
