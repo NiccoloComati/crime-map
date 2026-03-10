@@ -2,7 +2,12 @@
 
 from .data import get_bundle, get_supported_municipalities, reset_state
 from .metrics import clamp_dates, compute_relative_rates, filter_crime_by_date
-from .visualization import build_choropleth_map
+
+
+def build_choropleth_map(*args, **kwargs):
+    from .visualization import build_choropleth_map as _build_choropleth_map
+
+    return _build_choropleth_map(*args, **kwargs)
 
 __all__ = [
     "build_choropleth_map",
