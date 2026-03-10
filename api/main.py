@@ -26,7 +26,7 @@ app = FastAPI(
 def _allowed_origins() -> list[str]:
     configured = os.getenv("CRIME_MAP_ALLOWED_ORIGINS", "").strip()
     if configured:
-        return [origin.strip() for origin in configured.split(",") if origin.strip()]
+        return [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
 
     return [
         "http://localhost:3000",

@@ -39,6 +39,8 @@ Set this environment variable in Vercel:
 
 - `NEXT_PUBLIC_API_BASE_URL=https://your-render-api-domain`
 
+Use the API origin only. Do not include a trailing slash or any path segment.
+
 Apply it to:
 
 - Production
@@ -53,6 +55,8 @@ Set these Render environment variables:
 
 - `CRIME_MAP_ALLOWED_ORIGINS=https://your-frontend-domain`
 - `CRIME_MAP_ALLOWED_ORIGIN_REGEX=^https://.*\\.vercel\\.app$`
+
+For `CRIME_MAP_ALLOWED_ORIGINS`, use the frontend origin only. Do not include a path.
 
 `CRIME_MAP_ALLOWED_ORIGIN_REGEX` is optional, but useful if you want Vercel preview deployments to call the API before you finalize the production frontend domain.
 

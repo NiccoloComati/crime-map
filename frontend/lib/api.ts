@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000").replace(
+  /\/+$/,
+  "",
+);
 
 export type MetricFeatureProperties = {
   City: string;
@@ -59,8 +62,12 @@ async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+function apiUrl(path: string): string {
+  return new URL(path, `${API_BASE_URL}/`).toString();
+}
+
 export async function fetchMunicipalities(): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/municipalities`, {
+  const response = await fetch(apiUrl("api/v1/municipalities"), {
     cache: "no-store",
   });
   const payload = await parseJson<{ municipalities: string[] }>(response);
@@ -71,7 +78,7 @@ export async function fetchMunicipalityMetadata(
   municipality: string,
 ): Promise<MunicipalityMetadata> {
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/municipalities/${encodeURIComponent(municipality)}/metadata`,
+    apiUrl(`api/v1/municipalities/${encodeURIComponent(municipality)}/metadata`),
     {
       cache: "no-store",
     },
@@ -96,7 +103,7 @@ export async function fetchMunicipalityChoropleth(params: {
   }
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/municipalities/${encodeURIComponent(params.municipality)}/choropleth?${search.toString()}`,
+    `${apiUrl(`api/v1/municipalities/${encodeURIComponent(params.municipality)}/choropleth`)}?${search.toString()}`,
     {
       cache: "no-store",
     },
