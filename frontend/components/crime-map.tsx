@@ -21,6 +21,7 @@ const COLOR_STOPS: ColorStop[] = [
   { position: 1, color: [215, 65, 52], alpha: 0.84 },
 ];
 const EMPTY_COLOR = "#cfd6de";
+const COLOR_ALPHA_MULTIPLIER = 0.75;
 const MIN_RATE_POPULATION = 100;
 const SAFE_SCALE_PERCENTILE = 0.98;
 const SAFE_SCALE_MIN_FEATURES = 8;
@@ -45,7 +46,7 @@ const RATE_FORMATTERS = {
 };
 
 function rgba([red, green, blue]: [number, number, number], alpha: number): string {
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha * COLOR_ALPHA_MULTIPLIER})`;
 }
 
 function interpolateChannel(start: number, end: number, ratio: number): number {
