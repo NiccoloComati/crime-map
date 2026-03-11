@@ -136,7 +136,9 @@ def municipality_choropleth(
         "population_year": bundle["population_year"],
         "start_date": start_date.isoformat() if start_date else None,
         "end_date": end_date.isoformat() if end_date else None,
-        "incident_count": int(len(filtered_crime)),
+        "incident_count": int(
+            filtered_crime["Incident_Count"].sum() if "Incident_Count" in filtered_crime.columns else len(filtered_crime)
+        ),
         "geojson": build_metric_geojson(
             geo_df=geo_df,
             rates_df=rates_df,

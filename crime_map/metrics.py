@@ -26,9 +26,17 @@ def filter_crime_by_date(crime_df: pd.DataFrame, start_date: date, end_date: dat
 def compute_relative_rates(
     filtered_crime: pd.DataFrame, population: dict[str, float]
 ) -> pd.DataFrame:
-    crime_table_macro = (
-        filtered_crime.groupby(["GeoKey", "Macro Crime"]).size().unstack("Macro Crime").fillna(0)
-    )
+    if "Incident_Count" in filtered_crime.columns:
+        crime_table_macro = (
+            filtered_crime.groupby(["GeoKey", "Macro Crime"])["Incident_Count"]
+            .sum()
+            .unstack("Macro Crime")
+            .fillna(0)
+        )
+    else:
+        crime_table_macro = (
+            filtered_crime.groupby(["GeoKey", "Macro Crime"]).size().unstack("Macro Crime").fillna(0)
+        )
     population_series = pd.Series(population, dtype="float64")
     population_series = population_series.where(population_series > 0, np.nan)
     rates = crime_table_macro.reindex(population_series.index, fill_value=0).div(population_series, axis=0)

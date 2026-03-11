@@ -35,7 +35,7 @@ from .config import (
 )
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
-PROCESSED_BUNDLES_CACHE_NAME = "bundles_v1.pkl"
+PROCESSED_BUNDLES_CACHE_NAME = "bundles_v2.pkl"
 PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
@@ -172,9 +172,15 @@ def _load_boston_crime_raw(force_refresh: bool = False) -> pd.DataFrame:
             max_age_hours=12.0,
             force_refresh=force_refresh,
         )
-        frame = pd.read_csv(path, dtype=str, low_memory=False)
+        try:
+            frame = pd.read_csv(path, dtype=str, low_memory=False)
+        except pd.errors.EmptyDataError:
+            continue
         frame["__resource_id"] = resource["id"]
         frames.append(frame)
+
+    if not frames:
+        return pd.DataFrame()
 
     combined = pd.concat(frames, ignore_index=True)
     return combined.drop_duplicates()
@@ -500,8 +506,15 @@ def _build_city_bundle(
     for geokey in geo["GeoKey"]:
         city_population.setdefault(geokey, 0.0)
 
+    aggregated_crime = (
+        crime.groupby(["Date", "GeoKey", "Macro Crime"], as_index=False)
+        .size()
+        .rename(columns={"size": "Incident_Count"})
+    )
+    aggregated_crime["Incident_Count"] = aggregated_crime["Incident_Count"].astype("int32")
+
     return {
-        "crime": crime,
+        "crime": aggregated_crime,
         "geo": geo,
         "population": city_population,
         "zoom": MUNICIPALITY_ZOOM[city],
@@ -598,7 +611,14 @@ def _load_bundles() -> dict[str, dict[str, object]]:
         population,
     )
 
-    all_crime = pd.concat([cambridge_crime, boston_crime, somerville_crime], ignore_index=True)
+    all_crime = pd.concat(
+        [
+            bundles["Cambridge"]["crime"],
+            bundles["Boston"]["crime"],
+            bundles["Somerville"]["crime"],
+        ],
+        ignore_index=True,
+    )
     all_geo = gpd.GeoDataFrame(
         pd.concat([cambridge_geo, boston_geo, somerville_geo], ignore_index=True),
         geometry="geometry",
