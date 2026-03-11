@@ -22,6 +22,7 @@ def build_metric_geojson(
     rates_df: pd.DataFrame,
     population: dict[str, float],
     selected_macro: str,
+    valid_population_mask: pd.Series | None = None,
 ) -> dict[str, Any]:
     pop_df = pd.DataFrame(
         {
@@ -51,7 +52,12 @@ def build_metric_geojson(
         geo_df_selected["Population"], errors="coerce"
     ).fillna(0.0)
     geo_df_selected = geo_df_selected.rename(columns={selected_macro: "metric_value"})
+    if valid_population_mask is None:
+        geo_df_selected["is_rate_valid"] = True
+    else:
+        mask_lookup = valid_population_mask.reindex(geo_df_selected["GeoKey"]).fillna(False)
+        geo_df_selected["is_rate_valid"] = mask_lookup.astype(bool).to_numpy()
+        geo_df_selected.loc[~geo_df_selected["is_rate_valid"], "metric_value"] = np.nan
 
-    columns = ["City", "Mapped_Name", "GeoKey", "Population", "metric_value", "geometry"]
+    columns = ["City", "Mapped_Name", "GeoKey", "Population", "metric_value", "is_rate_valid", "geometry"]
     return json.loads(geo_df_selected[columns].to_json())
-

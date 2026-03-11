@@ -275,11 +275,15 @@ body::before {
 }
 
 .map-panel .leaflet-container {
-  background: #eef3f7;
+  background: #e8eef2;
 }
 
 .map-panel .leaflet-tile {
-  filter: saturate(0.9) brightness(1.03) contrast(1.02);
+  filter: saturate(1.02) brightness(1.01) contrast(1.05);
+}
+
+.map-panel .leaflet-labels-pane {
+  mix-blend-mode: multiply;
 }
 
 .map-panel .leaflet-control-attribution {
@@ -360,6 +364,13 @@ body::before {
 
 .legend-row:last-child {
   margin-bottom: 0;
+}
+
+.legend-row-muted {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(33, 51, 68, 0.08);
+  color: var(--muted);
 }
 
 .legend-swatch {

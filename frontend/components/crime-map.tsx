@@ -1,6 +1,6 @@
 "use client";
 
-import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer, Pane, TileLayer } from "react-leaflet";
 
 import type { ChoroplethPayload, MetricFeatureProperties } from "@/lib/api";
 
@@ -20,7 +20,7 @@ const COLOR_STOPS: ColorStop[] = [
   { position: 0.72, color: [242, 145, 55], alpha: 0.8 },
   { position: 1, color: [215, 65, 52], alpha: 0.84 },
 ];
-const EMPTY_COLOR = "#d7dee6";
+const EMPTY_COLOR = "#cfd6de";
 const RATE_SCALE = 1000;
 const RATE_FORMATTERS = {
   coarse: new Intl.NumberFormat("en-US", {
@@ -96,12 +96,16 @@ function getColor(value: number, maxValue: number): string {
   return getColorAtRatio(value / maxValue);
 }
 
-function buildLegendTicks(maxValue: number) {
+function buildLegendTicks(maxValue: number, hasClippedValues: boolean) {
   const ratios = [0, 0.25, 0.5, 0.75, 1];
-  return ratios.map((ratio) => ({
-    ratio,
-    label: formatRate(maxValue * ratio),
-  }));
+  return ratios.map((ratio, index) => {
+    const label = formatRate(maxValue * ratio);
+    if (hasClippedValues && index === ratios.length - 1) {
+      return { ratio, label: `${label}+` };
+    }
+
+    return { ratio, label };
+  });
 }
 
 function buildLegendGradient(): string {
@@ -112,9 +116,16 @@ function buildLegendGradient(): string {
 
 export default function CrimeMap({ payload }: CrimeMapProps) {
   const features = payload.geojson.features;
-  const values = features.map((feature) => Number(feature.properties.metric_value || 0));
-  const maxValue = values.length > 0 ? Math.max(...values) : 0;
-  const legendTicks = buildLegendTicks(maxValue);
+  const values = features.flatMap((feature) => {
+    if (!feature.properties.is_rate_valid || feature.properties.metric_value === null) {
+      return [];
+    }
+
+    return [Number(feature.properties.metric_value)];
+  });
+  const absoluteMaxValue = values.length > 0 ? Math.max(...values) : 0;
+  const maxValue = payload.scale_max > 0 ? payload.scale_max : absoluteMaxValue;
+  const legendTicks = buildLegendTicks(maxValue, absoluteMaxValue > maxValue);
   const legendGradient = buildLegendGradient();
 
   return (
@@ -128,28 +139,40 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/voyager_nolabels/{z}/{x}/{y}{r}.png"
         />
+        <Pane name="labels" style={{ zIndex: 450, pointerEvents: "none" }}>
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/voyager_only_labels/{z}/{x}/{y}{r}.png"
+            opacity={0.8}
+          />
+        </Pane>
         <GeoJSON
           data={payload.geojson as never}
           style={(feature) => {
             const properties = feature?.properties as MetricFeatureProperties | undefined;
-            const metricValue = Number(properties?.metric_value || 0);
+            const metricValue = properties?.metric_value ?? null;
+            const isRateValid = Boolean(properties?.is_rate_valid);
             return {
-              color: "#fbfcfd",
-              weight: 1.15,
-              opacity: 0.92,
+              color: isRateValid ? "#f8fbfd" : "#e8edf2",
+              weight: isRateValid ? 1.2 : 1,
+              opacity: isRateValid ? 0.95 : 0.88,
               fillOpacity: 1,
-              fillColor: getColor(metricValue, maxValue),
+              fillColor: isRateValid && metricValue !== null ? getColor(metricValue, maxValue) : EMPTY_COLOR,
             };
           }}
           onEachFeature={(feature, layer) => {
             const properties = feature.properties as MetricFeatureProperties;
+            const isRateValid = properties.is_rate_valid && properties.metric_value !== null;
+            const metricSummary = isRateValid
+              ? `${payload.selected_macro}: ${formatRate(Number(properties.metric_value))} per 1,000 residents`
+              : "Rate unavailable: resident population is too small for a stable comparison";
             const tooltip = `
               <div class="tooltip-shell">
                 <strong>${properties.Mapped_Name}</strong>
                 <span>${properties.City}</span>
-                <span>${payload.selected_macro}: ${formatRate(Number(properties.metric_value || 0))} per 1,000 residents</span>
+                <span>${metricSummary}</span>
                 <span>Population: ${Math.round(Number(properties.Population)).toLocaleString()}</span>
               </div>
             `;
@@ -177,9 +200,15 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
         ) : (
           <div className="legend-row">
             <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
-            <span>No reported incidents</span>
+            <span>{payload.excluded_area_count > 0 ? "No reported incidents in ranked areas" : "No reported incidents"}</span>
           </div>
         )}
+        {payload.excluded_area_count > 0 ? (
+          <div className="legend-row legend-row-muted">
+            <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
+            <span>Excluded from rate ranking</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );

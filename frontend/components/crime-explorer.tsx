@@ -314,7 +314,8 @@ export default function CrimeExplorer() {
           </p>
           <p>
             Colors are relative to the current selection. The legend shows incidents per 1,000
-            residents for the active area, crime type, and date range.
+            residents for the active area, crime type, and date range. Areas without a stable
+            resident population are grayed out and excluded from rate ranking.
           </p>
         </div>
       </section>

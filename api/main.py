@@ -8,11 +8,13 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from crime_map import (
+    apply_rate_guardrails,
     clamp_dates,
     compute_relative_rates,
     filter_crime_by_date,
     get_bundle,
     get_supported_municipalities,
+    safe_display_scale_max,
 )
 from crime_map.payloads import build_metric_geojson, map_center
 
@@ -128,6 +130,9 @@ def municipality_choropleth(
     if selected_macro not in rates_df.columns:
         rates_df = pd.DataFrame({selected_macro: 0.0}, index=population.keys())
 
+    rates_df, valid_population_mask = apply_rate_guardrails(rates_df, population)
+    scale_max = safe_display_scale_max(rates_df[selected_macro])
+
     return {
         "municipality": municipality,
         "selected_macro": selected_macro,
@@ -136,6 +141,8 @@ def municipality_choropleth(
         "population_year": bundle["population_year"],
         "start_date": start_date.isoformat() if start_date else None,
         "end_date": end_date.isoformat() if end_date else None,
+        "scale_max": scale_max,
+        "excluded_area_count": int((~valid_population_mask).sum()),
         "incident_count": int(
             filtered_crime["Incident_Count"].sum() if "Incident_Count" in filtered_crime.columns else len(filtered_crime)
         ),
@@ -144,5 +151,6 @@ def municipality_choropleth(
             rates_df=rates_df,
             population=population,
             selected_macro=selected_macro,
+            valid_population_mask=valid_population_mask,
         ),
     }
