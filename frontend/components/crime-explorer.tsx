@@ -23,6 +23,7 @@ const MUNICIPALITY_LABELS: Record<string, string> = {
   Cambridge: "Cambridge",
   Somerville: "Somerville",
 };
+const DEFAULT_WINDOW_YEARS = 5;
 
 function orderMunicipalities(options: string[]): string[] {
   const known = MUNICIPALITY_ORDER.filter((option) => options.includes(option));
@@ -48,6 +49,39 @@ function populationBaselineLabel(populationYear: string | null | undefined): str
   }
 
   return populationYear.replace(/\s*\(.+\)\s*$/, "");
+}
+
+function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatIsoDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function subtractYears(value: Date, years: number): Date {
+  const nextValue = new Date(value);
+  const targetMonth = nextValue.getUTCMonth();
+  nextValue.setUTCFullYear(nextValue.getUTCFullYear() - years);
+
+  if (nextValue.getUTCMonth() !== targetMonth) {
+    nextValue.setUTCDate(0);
+  }
+
+  return nextValue;
+}
+
+function defaultWindowStartDate(minDate: string, maxDate: string): string {
+  const minimumDate = parseIsoDate(minDate);
+  const maximumDate = parseIsoDate(maxDate);
+  const proposedStartDate = subtractYears(maximumDate, DEFAULT_WINDOW_YEARS);
+
+  if (proposedStartDate < minimumDate) {
+    return minDate;
+  }
+
+  return formatIsoDate(proposedStartDate);
 }
 
 export default function CrimeExplorer() {
@@ -106,8 +140,8 @@ export default function CrimeExplorer() {
 
         setMetadata(nextMetadata);
         setSelectedMacro(nextMetadata.default_macro);
-        setStartDate(nextMetadata.min_date);
         setEndDate(nextMetadata.max_date);
+        setStartDate(defaultWindowStartDate(nextMetadata.min_date, nextMetadata.max_date));
         setError("");
       } catch (nextError) {
         if (cancelled) {
@@ -164,7 +198,7 @@ export default function CrimeExplorer() {
       <div className="explorer-header">
         <p className="explorer-kicker">Official records. Comparable neighborhood rates.</p>
         <p className="explorer-note">
-           Pick an area. Pick a crime type. Choose your horizon. 
+           Pick an area. Pick a crime type. Choose your horizon.<br />
            The map should do the rest.
         </p>
       </div>

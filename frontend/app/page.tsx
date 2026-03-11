@@ -11,7 +11,9 @@ export default function HomePage() {
           </div>
           <div className="hero-side">
             <p className="hero-copy">
-              Official police data. Population-normalized rates. Relatively-ranked neighborhoods.
+              Official police data.<br />
+              Population-normalized rates.<br />
+              Relatively-ranked neighborhoods.
             </p>
           </div>
         </div>
