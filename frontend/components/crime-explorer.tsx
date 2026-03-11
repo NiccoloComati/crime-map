@@ -164,7 +164,8 @@ export default function CrimeExplorer() {
       <div className="explorer-header">
         <p className="explorer-kicker">Official records. Comparable neighborhood rates.</p>
         <p className="explorer-note">
-          Choose an area, pick a crime type, and tighten the dates. The map should do the rest.
+           Pick an area. Pick a crime type. Choose your horizon. 
+           The map should do the rest.
         </p>
       </div>
       <div className="controls-grid">

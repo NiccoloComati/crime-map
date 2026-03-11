@@ -11,12 +11,7 @@ export default function HomePage() {
           </div>
           <div className="hero-side">
             <p className="hero-copy">
-              Official police data. Population-normalized rates. A map first, everything else
-              second.
-            </p>
-            <p className="hero-note">
-              Pick an area. Pick a crime type. Tighten the dates. The pattern should be visible
-              without explanation.
+              Official police data. Population-normalized rates. Relatively-ranked neighborhoods.
             </p>
           </div>
         </div>
