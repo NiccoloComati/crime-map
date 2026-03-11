@@ -1,6 +1,6 @@
 "use client";
 
-import { GeoJSON, MapContainer, Pane, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
 
 import type { ChoroplethPayload, MetricFeatureProperties } from "@/lib/api";
 
@@ -181,15 +181,8 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/voyager_nolabels/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <Pane name="labels" style={{ zIndex: 450, pointerEvents: "none" }}>
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/voyager_only_labels/{z}/{x}/{y}{r}.png"
-            opacity={0.8}
-          />
-        </Pane>
         <GeoJSON
           data={payload.geojson as never}
           style={(feature) => {
@@ -200,7 +193,7 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
               color: rateIsValid ? "#f8fbfd" : "#e8edf2",
               weight: rateIsValid ? 1.2 : 1,
               opacity: rateIsValid ? 0.95 : 0.88,
-              fillOpacity: 1,
+              fillOpacity: rateIsValid ? 0.9 : 0.86,
               fillColor: rateIsValid && metricValue !== null ? getColor(metricValue, maxValue) : EMPTY_COLOR,
             };
           }}

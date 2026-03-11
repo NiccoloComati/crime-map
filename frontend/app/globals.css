@@ -275,15 +275,11 @@ body::before {
 }
 
 .map-panel .leaflet-container {
-  background: #e8eef2;
+  background: #eef3f6;
 }
 
 .map-panel .leaflet-tile {
-  filter: saturate(1.02) brightness(1.01) contrast(1.05);
-}
-
-.map-panel .leaflet-labels-pane {
-  mix-blend-mode: multiply;
+  filter: saturate(1.04) brightness(1.02) contrast(1.08);
 }
 
 .map-panel .leaflet-control-attribution {
