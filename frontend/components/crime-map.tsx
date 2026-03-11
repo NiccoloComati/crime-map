@@ -26,6 +26,8 @@ const EMPTY_COLOR = "#cfd6de";
 const COLOR_ALPHA_MULTIPLIER = 0.5625;
 const MIN_RATE_POPULATION = 100;
 const MIN_SCALE_POPULATION = 500;
+const SAFE_SCALE_PERCENTILE = 0.98;
+const SAFE_SCALE_MIN_FEATURES = 8;
 const RATE_SCALE = 1000;
 const LEGEND_RATE_FORMATTER = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
@@ -118,81 +120,41 @@ function isUnstableSmallPopulation(properties: MetricFeatureProperties): boolean
   return isRateValid(properties) && population >= MIN_RATE_POPULATION && population < MIN_SCALE_POPULATION;
 }
 
-function sortScaleValues(values: number[]): number[] {
-  return [...values].sort((left, right) => left - right);
-}
-
-function getQuantileValue(sortedValues: number[], quantile: number): number {
-  if (sortedValues.length === 0) {
+function safeScaleMax(values: number[]): number {
+  if (values.length === 0) {
     return 0;
   }
 
-  if (sortedValues.length === 1) {
-    return sortedValues[0];
+  const sortedValues = [...values].sort((left, right) => left - right);
+  const absoluteMax = sortedValues[sortedValues.length - 1];
+  if (sortedValues.length < SAFE_SCALE_MIN_FEATURES) {
+    return absoluteMax;
   }
 
-  const clampedQuantile = Math.max(0, Math.min(1, quantile));
-  const position = clampedQuantile * (sortedValues.length - 1);
-  const lowerIndex = Math.floor(position);
-  const upperIndex = Math.ceil(position);
-
-  if (lowerIndex === upperIndex) {
-    return sortedValues[lowerIndex];
-  }
-
-  const ratio = position - lowerIndex;
-  return (
-    sortedValues[lowerIndex] + (sortedValues[upperIndex] - sortedValues[lowerIndex]) * ratio
+  const percentileIndex = Math.min(
+    sortedValues.length - 1,
+    Math.max(0, Math.ceil(sortedValues.length * SAFE_SCALE_PERCENTILE) - 1),
   );
+  const percentileMax = sortedValues[percentileIndex];
+  if (!Number.isFinite(percentileMax) || percentileMax <= 0) {
+    return absoluteMax;
+  }
+
+  return Math.min(absoluteMax, Math.max(percentileMax, absoluteMax * 0.4));
 }
 
-function getColorRatio(value: number, sortedValues: number[]): number {
-  if (sortedValues.length === 0) {
-    return 0;
-  }
-
-  if (sortedValues.length === 1) {
-    return value >= sortedValues[0] ? 1 : 0;
-  }
-
-  if (value <= sortedValues[0]) {
-    return 0;
-  }
-
-  const lastIndex = sortedValues.length - 1;
-  if (value >= sortedValues[lastIndex]) {
-    return 1;
-  }
-
-  for (let index = 1; index <= lastIndex; index += 1) {
-    const previousValue = sortedValues[index - 1];
-    const nextValue = sortedValues[index];
-
-    if (value <= nextValue) {
-      if (nextValue === previousValue) {
-        return index / lastIndex;
-      }
-
-      const localRatio = (value - previousValue) / (nextValue - previousValue);
-      return ((index - 1) + localRatio) / lastIndex;
-    }
-  }
-
-  return 1;
-}
-
-function getColor(value: number, sortedValues: number[]): string {
-  if (sortedValues.length === 0) {
+function getColor(value: number, maxValue: number): string {
+  if (maxValue <= 0) {
     return EMPTY_COLOR;
   }
 
-  return getColorAtRatio(getColorRatio(value, sortedValues));
+  return getColorAtRatio(Math.max(0, Math.min(1, value / maxValue)));
 }
 
-function buildLegendTicks(sortedValues: number[], hasClippedValues: boolean) {
+function buildLegendTicks(maxValue: number, hasClippedValues: boolean) {
   const ratios = [0, 0.25, 0.5, 0.75, 1];
   return ratios.map((ratio, index) => {
-    const label = LEGEND_RATE_FORMATTER.format(getQuantileValue(sortedValues, ratio) * RATE_SCALE);
+    const label = LEGEND_RATE_FORMATTER.format(maxValue * ratio * RATE_SCALE);
     if (hasClippedValues && index === ratios.length - 1) {
       return { ratio, label: `${label}+` };
     }
@@ -224,14 +186,14 @@ export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }:
 
     return [Number(feature.properties.metric_value)];
   });
-  const scaleValues = sortScaleValues(stableScaleValues.length > 0 ? stableScaleValues : rateValues);
+  const scaleValues = stableScaleValues.length > 0 ? stableScaleValues : rateValues;
   const absoluteMaxValue = rateValues.length > 0 ? Math.max(...rateValues) : 0;
-  const referenceMaxValue = scaleValues.length > 0 ? scaleValues[scaleValues.length - 1] : 0;
+  const referenceMaxValue = safeScaleMax(scaleValues);
   const excludedAreaCount =
     typeof payload.excluded_area_count === "number"
       ? payload.excluded_area_count
       : features.filter((feature) => !isRateValid(feature.properties)).length;
-  const legendTicks = buildLegendTicks(scaleValues, absoluteMaxValue > referenceMaxValue);
+  const legendTicks = buildLegendTicks(referenceMaxValue, absoluteMaxValue > referenceMaxValue);
   const legendGradient = buildLegendGradient();
 
   return (
@@ -259,7 +221,7 @@ export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }:
               weight: rateIsValid ? 1.2 : 1,
               opacity: rateIsValid ? 0.95 : 0.88,
               fillOpacity: rateIsValid ? 0.9 : 0.86,
-              fillColor: rateIsValid && metricValue !== null ? getColor(metricValue, scaleValues) : EMPTY_COLOR,
+              fillColor: rateIsValid && metricValue !== null ? getColor(metricValue, referenceMaxValue) : EMPTY_COLOR,
             };
           }}
           onEachFeature={(feature, layer) => {
@@ -294,7 +256,7 @@ export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }:
         <p className="legend-title">{payload.selected_macro}</p>
         <p className="legend-subtitle">Incidents per 1,000 residents</p>
         <p className="legend-note">{scaleReferenceLabel}</p>
-        {scaleValues.length > 0 ? (
+        {referenceMaxValue > 0 ? (
           <>
             <div className="legend-scale" style={{ backgroundImage: legendGradient }} />
             <div className="legend-ticks" aria-hidden="true">
