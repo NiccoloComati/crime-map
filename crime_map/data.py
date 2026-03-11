@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from io import StringIO
 from pathlib import Path
+import pickle
 from zipfile import ZipFile
 
 import geopandas as gpd
@@ -32,6 +33,10 @@ from .config import (
     SOMERVILLE_NEIGHBORHOODS_URL,
     TARGET_CRS,
 )
+
+SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
+PROCESSED_BUNDLES_CACHE_NAME = "bundles_v1.pkl"
+PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
 def _first_existing_column(frame: pd.DataFrame, candidates: list[str]) -> str:
@@ -504,8 +509,34 @@ def _build_city_bundle(
     }
 
 
+def _load_cached_bundles() -> dict[str, dict[str, object]] | None:
+    cached = cache_path(PROCESSED_BUNDLES_CACHE_NAME)
+    if not is_fresh(cached, PROCESSED_BUNDLES_MAX_AGE_HOURS):
+        return None
+
+    try:
+        with cached.open("rb") as handle:
+            bundles = pickle.load(handle)
+    except Exception:
+        return None
+
+    if not isinstance(bundles, dict):
+        return None
+    return bundles
+
+
+def _store_cached_bundles(bundles: dict[str, dict[str, object]]) -> None:
+    cached = cache_path(PROCESSED_BUNDLES_CACHE_NAME)
+    with cached.open("wb") as handle:
+        pickle.dump(bundles, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 @lru_cache(maxsize=1)
 def _load_bundles() -> dict[str, dict[str, object]]:
+    cached = _load_cached_bundles()
+    if cached is not None:
+        return cached
+
     blocks = _load_census_blocks(force_refresh=False)
     cambridge_geo = _load_cambridge_geo(force_refresh=False)
     boston_geo = _load_boston_geo(force_refresh=False)
@@ -580,13 +611,12 @@ def _load_bundles() -> dict[str, dict[str, object]]:
         "zoom": MUNICIPALITY_ZOOM["All Metro"],
         "population_year": POPULATION_YEAR_LABEL,
     }
+    _store_cached_bundles(bundles)
     return bundles
 
 
 def get_supported_municipalities() -> list[str]:
-    bundles = _load_bundles()
-    ordered = ["All Metro", "Cambridge", "Boston", "Somerville"]
-    return [name for name in ordered if name in bundles]
+    return SUPPORTED_MUNICIPALITIES.copy()
 
 
 def get_bundle(municipality: str) -> dict[str, object]:
@@ -594,6 +624,11 @@ def get_bundle(municipality: str) -> dict[str, object]:
     if municipality in bundles:
         return bundles[municipality]
     return bundles["All Metro"]
+
+
+def warm_processed_cache() -> list[str]:
+    _load_bundles()
+    return get_supported_municipalities()
 
 
 def reset_state(*, clear_disk_cache: bool = False) -> None:
