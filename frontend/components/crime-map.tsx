@@ -8,7 +8,13 @@ type CrimeMapProps = {
   payload: ChoroplethPayload;
 };
 
-const COLOR_SCALE = ["#f3f5f7", "#dbe2ea", "#bfc9d4", "#bc725d", "#7f2f26"] as const;
+const COLOR_SCALE = [
+  "rgba(117, 191, 255, 0.72)",
+  "rgba(87, 186, 112, 0.72)",
+  "rgba(255, 214, 64, 0.82)",
+  "rgba(245, 146, 61, 0.8)",
+  "rgba(220, 74, 58, 0.82)",
+] as const;
 const EMPTY_COLOR = "#d7dee6";
 const RATE_SCALE = 1000;
 const RATE_FORMATTERS = {
@@ -99,7 +105,7 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
               color: "#fbfcfd",
               weight: 1.15,
               opacity: 0.92,
-              fillOpacity: 0.8,
+              fillOpacity: 1,
               fillColor: getColor(metricValue, maxValue),
             };
           }}

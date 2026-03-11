@@ -369,6 +369,47 @@ body::before {
   font-size: 0.84rem;
 }
 
+.methodology-section {
+  margin-top: 28px;
+  padding: 22px 0 0;
+  border-top: 1px solid var(--paper-line);
+}
+
+.methodology-header {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.methodology-eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.methodology-header h2 {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  letter-spacing: -0.04em;
+}
+
+.methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 22px;
+}
+
+.methodology-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
 @media (max-width: 1080px) {
   .hero-grid,
   .explorer-header {
@@ -393,6 +434,10 @@ body::before {
   }
 
   .stats-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .methodology-grid {
     grid-template-columns: 1fr;
   }
 
