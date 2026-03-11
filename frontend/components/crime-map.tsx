@@ -21,6 +21,9 @@ const COLOR_STOPS: ColorStop[] = [
   { position: 1, color: [215, 65, 52], alpha: 0.84 },
 ];
 const EMPTY_COLOR = "#cfd6de";
+const MIN_RATE_POPULATION = 100;
+const SAFE_SCALE_PERCENTILE = 0.98;
+const SAFE_SCALE_MIN_FEATURES = 8;
 const RATE_SCALE = 1000;
 const RATE_FORMATTERS = {
   coarse: new Intl.NumberFormat("en-US", {
@@ -88,6 +91,41 @@ function formatRate(value: number): string {
   return RATE_FORMATTERS.ultra.format(scaledValue);
 }
 
+function isFiniteMetricValue(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isRateValid(properties: MetricFeatureProperties): boolean {
+  if (typeof properties.is_rate_valid === "boolean") {
+    return properties.is_rate_valid && isFiniteMetricValue(properties.metric_value);
+  }
+
+  return isFiniteMetricValue(properties.metric_value) && Number(properties.Population) >= MIN_RATE_POPULATION;
+}
+
+function safeScaleMax(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sortedValues = [...values].sort((left, right) => left - right);
+  const absoluteMax = sortedValues[sortedValues.length - 1];
+  if (sortedValues.length < SAFE_SCALE_MIN_FEATURES) {
+    return absoluteMax;
+  }
+
+  const percentileIndex = Math.min(
+    sortedValues.length - 1,
+    Math.max(0, Math.ceil(sortedValues.length * SAFE_SCALE_PERCENTILE) - 1),
+  );
+  const percentileMax = sortedValues[percentileIndex];
+  if (!Number.isFinite(percentileMax) || percentileMax <= 0) {
+    return absoluteMax;
+  }
+
+  return Math.min(absoluteMax, Math.max(percentileMax, absoluteMax * 0.4));
+}
+
 function getColor(value: number, maxValue: number): string {
   if (maxValue <= 0) {
     return EMPTY_COLOR;
@@ -117,14 +155,18 @@ function buildLegendGradient(): string {
 export default function CrimeMap({ payload }: CrimeMapProps) {
   const features = payload.geojson.features;
   const values = features.flatMap((feature) => {
-    if (!feature.properties.is_rate_valid || feature.properties.metric_value === null) {
+    if (!isRateValid(feature.properties) || feature.properties.metric_value === null) {
       return [];
     }
 
     return [Number(feature.properties.metric_value)];
   });
   const absoluteMaxValue = values.length > 0 ? Math.max(...values) : 0;
-  const maxValue = payload.scale_max > 0 ? payload.scale_max : absoluteMaxValue;
+  const maxValue = payload.scale_max && payload.scale_max > 0 ? payload.scale_max : safeScaleMax(values);
+  const excludedAreaCount =
+    typeof payload.excluded_area_count === "number"
+      ? payload.excluded_area_count
+      : features.filter((feature) => !isRateValid(feature.properties)).length;
   const legendTicks = buildLegendTicks(maxValue, absoluteMaxValue > maxValue);
   const legendGradient = buildLegendGradient();
 
@@ -153,19 +195,19 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
           style={(feature) => {
             const properties = feature?.properties as MetricFeatureProperties | undefined;
             const metricValue = properties?.metric_value ?? null;
-            const isRateValid = Boolean(properties?.is_rate_valid);
+            const rateIsValid = properties ? isRateValid(properties) : false;
             return {
-              color: isRateValid ? "#f8fbfd" : "#e8edf2",
-              weight: isRateValid ? 1.2 : 1,
-              opacity: isRateValid ? 0.95 : 0.88,
+              color: rateIsValid ? "#f8fbfd" : "#e8edf2",
+              weight: rateIsValid ? 1.2 : 1,
+              opacity: rateIsValid ? 0.95 : 0.88,
               fillOpacity: 1,
-              fillColor: isRateValid && metricValue !== null ? getColor(metricValue, maxValue) : EMPTY_COLOR,
+              fillColor: rateIsValid && metricValue !== null ? getColor(metricValue, maxValue) : EMPTY_COLOR,
             };
           }}
           onEachFeature={(feature, layer) => {
             const properties = feature.properties as MetricFeatureProperties;
-            const isRateValid = properties.is_rate_valid && properties.metric_value !== null;
-            const metricSummary = isRateValid
+            const rateIsValid = isRateValid(properties) && properties.metric_value !== null;
+            const metricSummary = rateIsValid
               ? `${payload.selected_macro}: ${formatRate(Number(properties.metric_value))} per 1,000 residents`
               : "Rate unavailable: resident population is too small for a stable comparison";
             const tooltip = `
@@ -200,10 +242,10 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
         ) : (
           <div className="legend-row">
             <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
-            <span>{payload.excluded_area_count > 0 ? "No reported incidents in ranked areas" : "No reported incidents"}</span>
+            <span>{excludedAreaCount > 0 ? "No reported incidents in ranked areas" : "No reported incidents"}</span>
           </div>
         )}
-        {payload.excluded_area_count > 0 ? (
+        {excludedAreaCount > 0 ? (
           <div className="legend-row legend-row-muted">
             <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
             <span>Excluded from rate ranking</span>

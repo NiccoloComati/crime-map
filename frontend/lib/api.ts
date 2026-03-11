@@ -9,7 +9,7 @@ export type MetricFeatureProperties = {
   GeoKey: string;
   Population: number;
   metric_value: number | null;
-  is_rate_valid: boolean;
+  is_rate_valid?: boolean;
 };
 
 export type ChoroplethFeatureCollection = {
@@ -40,8 +40,8 @@ export type ChoroplethPayload = {
   population_year: string;
   start_date: string | null;
   end_date: string | null;
-  scale_max: number;
-  excluded_area_count: number;
+  scale_max?: number;
+  excluded_area_count?: number;
   incident_count: number;
   geojson: ChoroplethFeatureCollection;
 };
