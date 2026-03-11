@@ -279,7 +279,7 @@ body::before {
 }
 
 .map-panel .leaflet-tile {
-  filter: saturate(1.04) brightness(1.02) contrast(1.08);
+  filter: none;
 }
 
 .map-panel .leaflet-control-attribution {
