@@ -16,6 +16,8 @@ const CrimeMap = dynamic(() => import("@/components/crime-map"), {
   loading: () => <div className="map-loading">Loading map...</div>,
 });
 
+type ScaleReference = "selected" | "metro";
+
 const MUNICIPALITY_ORDER = ["All Metro", "Boston", "Cambridge", "Somerville"] as const;
 const MUNICIPALITY_LABELS: Record<string, string> = {
   "All Metro": "Boston (All metro)",
@@ -89,9 +91,11 @@ export default function CrimeExplorer() {
   const [municipality, setMunicipality] = useState("");
   const [metadata, setMetadata] = useState<MunicipalityMetadata | null>(null);
   const [selectedMacro, setSelectedMacro] = useState("");
+  const [scaleReference, setScaleReference] = useState<ScaleReference>("selected");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [payload, setPayload] = useState<ChoroplethPayload | null>(null);
+  const [scalePayload, setScalePayload] = useState<ChoroplethPayload | null>(null);
   const [loadingMessage, setLoadingMessage] = useState("Loading areas...");
   const [error, setError] = useState("");
 
@@ -167,17 +171,30 @@ export default function CrimeExplorer() {
 
     async function loadMap() {
       try {
-        const nextPayload = await fetchMunicipalityChoropleth({
-          municipality,
-          macro: selectedMacro,
-          startDate,
-          endDate,
-        });
+        const scaleMunicipality =
+          scaleReference === "metro" && municipality !== "All Metro" ? "All Metro" : municipality;
+        const [nextPayload, nextScalePayload] = await Promise.all([
+          fetchMunicipalityChoropleth({
+            municipality,
+            macro: selectedMacro,
+            startDate,
+            endDate,
+          }),
+          scaleMunicipality === municipality
+            ? Promise.resolve<ChoroplethPayload | null>(null)
+            : fetchMunicipalityChoropleth({
+                municipality: scaleMunicipality,
+                macro: selectedMacro,
+                startDate,
+                endDate,
+              }),
+        ]);
         if (cancelled) {
           return;
         }
 
         setPayload(nextPayload);
+        setScalePayload(nextScalePayload ?? nextPayload);
         setError("");
       } catch (nextError) {
         if (cancelled) {
@@ -191,7 +208,7 @@ export default function CrimeExplorer() {
     return () => {
       cancelled = true;
     };
-  }, [municipality, metadata, selectedMacro, startDate, endDate]);
+  }, [municipality, metadata, selectedMacro, scaleReference, startDate, endDate]);
 
   return (
     <section className="explorer-shell">
@@ -230,6 +247,17 @@ export default function CrimeExplorer() {
                 {option}
               </option>
             ))}
+          </select>
+        </div>
+        <div className="control">
+          <label htmlFor="scale-reference">Scale Reference</label>
+          <select
+            id="scale-reference"
+            value={scaleReference}
+            onChange={(event) => setScaleReference(event.target.value as ScaleReference)}
+          >
+            <option value="selected">Selected area</option>
+            <option value="metro">Metro area</option>
           </select>
         </div>
         <div className="control">
@@ -288,7 +316,11 @@ export default function CrimeExplorer() {
           </p>
         </div>
       ) : payload ? (
-        <CrimeMap payload={payload} />
+        <CrimeMap
+          payload={payload}
+          scalePayload={scalePayload ?? payload}
+          scaleReferenceLabel={scaleReference === "metro" ? "Metro area scale" : "Selected area scale"}
+        />
       ) : (
         <div className="map-loading">{loadingMessage}</div>
       )}
@@ -313,9 +345,19 @@ export default function CrimeExplorer() {
             neighborhood boundaries, its population is area-allocated across those polygons.
           </p>
           <p>
-            Colors are relative to the current selection. The legend shows incidents per 1,000
-            residents for the active area, crime type, and date range. Areas without a stable
-            resident population are grayed out and excluded from rate ranking.
+            The color scale can be anchored to the selected area or to the full metro area. The
+            legend always shows whole-number incidents per 1,000 residents for the active scale
+            reference.
+          </p>
+          <p>
+            Areas with resident population below 100 are grayed out and excluded from rate ranking.
+            Areas with resident population below 500 keep their computed crime score, but they are
+            excluded from the scale calibration and flagged as unstable because a very small
+            denominator can swing the rate sharply.
+          </p>
+          <p>
+            The map also uses a protected upper scale bound derived from the stable-population
+            areas, so one extreme rate does not flatten the rest of the map.
           </p>
         </div>
       </section>

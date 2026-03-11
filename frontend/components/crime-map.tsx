@@ -6,6 +6,8 @@ import type { ChoroplethPayload, MetricFeatureProperties } from "@/lib/api";
 
 type CrimeMapProps = {
   payload: ChoroplethPayload;
+  scalePayload: ChoroplethPayload;
+  scaleReferenceLabel: string;
 };
 
 type ColorStop = {
@@ -23,9 +25,14 @@ const COLOR_STOPS: ColorStop[] = [
 const EMPTY_COLOR = "#cfd6de";
 const COLOR_ALPHA_MULTIPLIER = 0.5625;
 const MIN_RATE_POPULATION = 100;
+const MIN_SCALE_POPULATION = 500;
 const SAFE_SCALE_PERCENTILE = 0.98;
 const SAFE_SCALE_MIN_FEATURES = 8;
 const RATE_SCALE = 1000;
+const LEGEND_RATE_FORMATTER = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 const RATE_FORMATTERS = {
   coarse: new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
@@ -104,6 +111,15 @@ function isRateValid(properties: MetricFeatureProperties): boolean {
   return isFiniteMetricValue(properties.metric_value) && Number(properties.Population) >= MIN_RATE_POPULATION;
 }
 
+function isScaleStable(properties: MetricFeatureProperties): boolean {
+  return isRateValid(properties) && Number(properties.Population) >= MIN_SCALE_POPULATION;
+}
+
+function isUnstableSmallPopulation(properties: MetricFeatureProperties): boolean {
+  const population = Number(properties.Population);
+  return isRateValid(properties) && population >= MIN_RATE_POPULATION && population < MIN_SCALE_POPULATION;
+}
+
 function safeScaleMax(values: number[]): number {
   if (values.length === 0) {
     return 0;
@@ -138,7 +154,7 @@ function getColor(value: number, maxValue: number): string {
 function buildLegendTicks(maxValue: number, hasClippedValues: boolean) {
   const ratios = [0, 0.25, 0.5, 0.75, 1];
   return ratios.map((ratio, index) => {
-    const label = formatRate(maxValue * ratio);
+    const label = LEGEND_RATE_FORMATTER.format(maxValue * ratio * RATE_SCALE);
     if (hasClippedValues && index === ratios.length - 1) {
       return { ratio, label: `${label}+` };
     }
@@ -153,17 +169,26 @@ function buildLegendGradient(): string {
   ).join(", ")})`;
 }
 
-export default function CrimeMap({ payload }: CrimeMapProps) {
+export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }: CrimeMapProps) {
   const features = payload.geojson.features;
-  const values = features.flatMap((feature) => {
+  const scaleFeatures = scalePayload.geojson.features;
+  const rateValues = scaleFeatures.flatMap((feature) => {
     if (!isRateValid(feature.properties) || feature.properties.metric_value === null) {
       return [];
     }
 
     return [Number(feature.properties.metric_value)];
   });
-  const absoluteMaxValue = values.length > 0 ? Math.max(...values) : 0;
-  const maxValue = payload.scale_max && payload.scale_max > 0 ? payload.scale_max : safeScaleMax(values);
+  const stableScaleValues = scaleFeatures.flatMap((feature) => {
+    if (!isScaleStable(feature.properties) || feature.properties.metric_value === null) {
+      return [];
+    }
+
+    return [Number(feature.properties.metric_value)];
+  });
+  const scaleValues = stableScaleValues.length > 0 ? stableScaleValues : rateValues;
+  const absoluteMaxValue = rateValues.length > 0 ? Math.max(...rateValues) : 0;
+  const maxValue = safeScaleMax(scaleValues);
   const excludedAreaCount =
     typeof payload.excluded_area_count === "number"
       ? payload.excluded_area_count
@@ -201,14 +226,19 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
           onEachFeature={(feature, layer) => {
             const properties = feature.properties as MetricFeatureProperties;
             const rateIsValid = isRateValid(properties) && properties.metric_value !== null;
+            const unstableSmallPopulation = rateIsValid && isUnstableSmallPopulation(properties);
             const metricSummary = rateIsValid
               ? `${payload.selected_macro}: ${formatRate(Number(properties.metric_value))} per 1,000 residents`
-              : "Rate unavailable: resident population is too small for a stable comparison";
+              : "Rate unavailable: resident population too small";
+            const stabilityWarning = unstableSmallPopulation
+              ? '<span class="tooltip-warning">&#9888; Small population. Unstable rate.</span>'
+              : "";
             const tooltip = `
               <div class="tooltip-shell">
                 <strong>${properties.Mapped_Name}</strong>
                 <span>${properties.City}</span>
                 <span>${metricSummary}</span>
+                ${stabilityWarning}
                 <span>Population: ${Math.round(Number(properties.Population)).toLocaleString()}</span>
               </div>
             `;
@@ -224,6 +254,7 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
       <div className="legend-card">
         <p className="legend-title">{payload.selected_macro}</p>
         <p className="legend-subtitle">Incidents per 1,000 residents</p>
+        <p className="legend-note">{scaleReferenceLabel}</p>
         {maxValue > 0 ? (
           <>
             <div className="legend-scale" style={{ backgroundImage: legendGradient }} />
@@ -242,7 +273,7 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
         {excludedAreaCount > 0 ? (
           <div className="legend-row legend-row-muted">
             <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
-            <span>Excluded from rate ranking</span>
+            <span>Resident population too small</span>
           </div>
         ) : null}
       </div>

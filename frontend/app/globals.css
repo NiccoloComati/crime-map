@@ -136,7 +136,7 @@ body::before {
 
 .controls-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-top: 18px;
   border-top: 2px solid var(--paper-line-strong);
   border-bottom: 1px solid var(--paper-line);
@@ -315,9 +315,16 @@ body::before {
 }
 
 .legend-subtitle {
-  margin: 6px 0 12px;
+  margin: 6px 0 2px;
   color: var(--muted);
   font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.legend-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.72rem;
   line-height: 1.4;
 }
 
@@ -401,6 +408,11 @@ body::before {
   display: block;
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.tooltip-shell .tooltip-warning {
+  margin-top: 4px;
+  color: var(--signal);
 }
 
 .methodology-section {
