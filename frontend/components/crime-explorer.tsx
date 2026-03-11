@@ -345,9 +345,9 @@ export default function CrimeExplorer() {
             neighborhood boundaries, its population is area-allocated across those polygons.
           </p>
           <p>
-            The color scale can be anchored to the selected area or to the full metro area. The
-            legend always shows whole-number incidents per 1,000 residents for the active scale
-            reference.
+            The color scale can be anchored to the selected area or to the full metro area. Colors
+            are assigned by where each neighborhood rate sits within that chosen reference set, and
+            the legend shows the matching whole-number rate cutoffs for that reference.
           </p>
           <p>
             Areas with resident population below 100 are grayed out and excluded from rate ranking.
@@ -356,8 +356,9 @@ export default function CrimeExplorer() {
             denominator can swing the rate sharply.
           </p>
           <p>
-            The map also uses a protected upper scale bound derived from the stable-population
-            areas, so one extreme rate does not flatten the rest of the map.
+            Small-population areas still display their computed rate, but if they sit above or
+            below the stable reference range they are clipped to the reddest or greenest end of the
+            map rather than stretching the scale for everything else.
           </p>
         </div>
       </section>
