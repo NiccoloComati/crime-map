@@ -17,8 +17,8 @@ const displayFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Crime Map",
-  description: "Live neighborhood crime choropleths for Cambridge, Boston, Somerville, and the full metro view.",
+  title: "Metro Crime Atlas",
+  description: "Neighborhood crime maps built from official police data and census-based population normalization.",
 };
 
 export default function RootLayout({

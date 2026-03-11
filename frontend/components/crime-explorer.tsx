@@ -13,7 +13,7 @@ import {
 
 const CrimeMap = dynamic(() => import("@/components/crime-map"), {
   ssr: false,
-  loading: () => <div className="map-loading">Loading browser map...</div>,
+  loading: () => <div className="map-loading">Loading map...</div>,
 });
 
 const MUNICIPALITY_ORDER = ["All Metro", "Boston", "Cambridge", "Somerville"] as const;
@@ -58,7 +58,7 @@ export default function CrimeExplorer() {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [payload, setPayload] = useState<ChoroplethPayload | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState("Loading municipalities...");
+  const [loadingMessage, setLoadingMessage] = useState("Loading areas...");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function CrimeExplorer() {
     }
 
     let cancelled = false;
-    setLoadingMessage("Loading municipality metadata...");
+    setLoadingMessage("Loading area details...");
 
     async function loadMetadata() {
       try {
@@ -129,7 +129,7 @@ export default function CrimeExplorer() {
     }
 
     let cancelled = false;
-    setLoadingMessage("Calculating rates and preparing map payload...");
+    setLoadingMessage("Preparing map...");
 
     async function loadMap() {
       try {
@@ -162,15 +162,14 @@ export default function CrimeExplorer() {
   return (
     <section className="explorer-shell">
       <div className="explorer-header">
-        <p className="explorer-kicker">Official police records, tuned for neighborhood comparison</p>
+        <p className="explorer-kicker">Official records. Comparable neighborhood rates.</p>
         <p className="explorer-note">
-          The controls sit up front; the map stays dominant. Adjust the window and read the city as
-          a field, not a stack of cards.
+          Choose an area, pick a crime type, and tighten the dates. The map should do the rest.
         </p>
       </div>
       <div className="controls-grid">
         <div className="control">
-          <label htmlFor="municipality">Municipality</label>
+          <label htmlFor="municipality">Area</label>
           <select
             id="municipality"
             value={municipality}
@@ -184,7 +183,7 @@ export default function CrimeExplorer() {
           </select>
         </div>
         <div className="control">
-          <label htmlFor="macro">Crime Macro</label>
+          <label htmlFor="macro">Crime Type</label>
           <select
             id="macro"
             value={selectedMacro}
@@ -226,13 +225,13 @@ export default function CrimeExplorer() {
 
       <div className="stats-bar">
         <article className="stat-card">
-          <p className="stat-label">Active City</p>
+          <p className="stat-label">Active Area</p>
           <p className="stat-value">
             {municipalityLabel(payload?.municipality || municipality || "...")}
           </p>
         </article>
         <article className="stat-card">
-          <p className="stat-label">Filtered Incidents</p>
+          <p className="stat-label">Incidents in Range</p>
           <p className="stat-value">
             {payload ? payload.incident_count.toLocaleString() : "..."}
           </p>
@@ -262,24 +261,25 @@ export default function CrimeExplorer() {
       <section className="methodology-section" aria-labelledby="methodology-title">
         <div className="methodology-header">
           <p className="methodology-eyebrow">Methodology</p>
-          <h2 id="methodology-title">How the map is computed</h2>
+          <h2 id="methodology-title">How it works</h2>
         </div>
         <div className="methodology-grid">
           <p>
-            Crime totals come from official police open-data feeds for Boston, Cambridge, and
-            Somerville. The metro view combines those same municipal feeds into one regional map.
+            Crime totals come from official municipal police open-data feeds for the areas
+            currently covered by the app. The metro view combines those same local feeds into one
+            regional map.
           </p>
           <p>
-            The backend stores daily incident counts by neighborhood and crime family, then filters
-            that aggregated data by the selected date range before calculating rates.
+            The backend stores daily incident counts by neighborhood and crime family. The selected
+            date window is applied to those aggregates before rates are calculated.
           </p>
           <p>
-            Population normalization uses 2020 Census block counts. When a census block overlaps
-            more than one neighborhood, its population is area-allocated across those boundaries.
+            Population normalization uses 2020 Census block counts. When a census block crosses
+            neighborhood boundaries, its population is area-allocated across those polygons.
           </p>
           <p>
-            The legend shows incidents per 1,000 residents for the active municipality, crime type,
-            and date window, so the bins update when you change the selection.
+            Colors are relative to the current selection. The legend shows incidents per 1,000
+            residents for the active area, crime type, and date range.
           </p>
         </div>
       </section>

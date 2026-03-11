@@ -8,13 +8,18 @@ type CrimeMapProps = {
   payload: ChoroplethPayload;
 };
 
-const COLOR_SCALE = [
-  "rgba(117, 191, 255, 0.72)",
-  "rgba(87, 186, 112, 0.72)",
-  "rgba(255, 214, 64, 0.82)",
-  "rgba(245, 146, 61, 0.8)",
-  "rgba(220, 74, 58, 0.82)",
-] as const;
+type ColorStop = {
+  position: number;
+  color: [number, number, number];
+  alpha: number;
+};
+
+const COLOR_STOPS: ColorStop[] = [
+  { position: 0, color: [54, 172, 90], alpha: 0.52 },
+  { position: 0.45, color: [236, 214, 68], alpha: 0.74 },
+  { position: 0.72, color: [242, 145, 55], alpha: 0.8 },
+  { position: 1, color: [215, 65, 52], alpha: 0.84 },
+];
 const EMPTY_COLOR = "#d7dee6";
 const RATE_SCALE = 1000;
 const RATE_FORMATTERS = {
@@ -36,6 +41,39 @@ const RATE_FORMATTERS = {
   }),
 };
 
+function rgba([red, green, blue]: [number, number, number], alpha: number): string {
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function interpolateChannel(start: number, end: number, ratio: number): number {
+  return Math.round(start + (end - start) * ratio);
+}
+
+function getColorAtRatio(ratio: number): string {
+  const clampedRatio = Math.max(0, Math.min(1, ratio));
+
+  for (let index = 1; index < COLOR_STOPS.length; index += 1) {
+    const previousStop = COLOR_STOPS[index - 1];
+    const nextStop = COLOR_STOPS[index];
+
+    if (clampedRatio <= nextStop.position) {
+      const localRatio =
+        (clampedRatio - previousStop.position) / (nextStop.position - previousStop.position);
+      return rgba(
+        [
+          interpolateChannel(previousStop.color[0], nextStop.color[0], localRatio),
+          interpolateChannel(previousStop.color[1], nextStop.color[1], localRatio),
+          interpolateChannel(previousStop.color[2], nextStop.color[2], localRatio),
+        ],
+        previousStop.alpha + (nextStop.alpha - previousStop.alpha) * localRatio,
+      );
+    }
+  }
+
+  const finalStop = COLOR_STOPS[COLOR_STOPS.length - 1];
+  return rgba(finalStop.color, finalStop.alpha);
+}
+
 function formatRate(value: number): string {
   const scaledValue = value * RATE_SCALE;
   if (scaledValue >= 10) {
@@ -55,33 +93,29 @@ function getColor(value: number, maxValue: number): string {
     return EMPTY_COLOR;
   }
 
-  const ratio = value / maxValue;
-  if (ratio >= 0.8) return COLOR_SCALE[4];
-  if (ratio >= 0.6) return COLOR_SCALE[3];
-  if (ratio >= 0.4) return COLOR_SCALE[2];
-  if (ratio >= 0.2) return COLOR_SCALE[1];
-  return COLOR_SCALE[0];
+  return getColorAtRatio(value / maxValue);
 }
 
-function buildLegendStops(maxValue: number) {
-  if (maxValue <= 0) {
-    return [{ label: "No reported incidents", color: EMPTY_COLOR }];
-  }
+function buildLegendTicks(maxValue: number) {
+  const ratios = [0, 0.25, 0.5, 0.75, 1];
+  return ratios.map((ratio) => ({
+    ratio,
+    label: formatRate(maxValue * ratio),
+  }));
+}
 
-  return [
-    { label: `${formatRate(maxValue * 0.8)}+`, color: COLOR_SCALE[4] },
-    { label: `${formatRate(maxValue * 0.6)} - ${formatRate(maxValue * 0.8)}`, color: COLOR_SCALE[3] },
-    { label: `${formatRate(maxValue * 0.4)} - ${formatRate(maxValue * 0.6)}`, color: COLOR_SCALE[2] },
-    { label: `${formatRate(maxValue * 0.2)} - ${formatRate(maxValue * 0.4)}`, color: COLOR_SCALE[1] },
-    { label: `0 - ${formatRate(maxValue * 0.2)}`, color: COLOR_SCALE[0] },
-  ];
+function buildLegendGradient(): string {
+  return `linear-gradient(90deg, ${COLOR_STOPS.map(
+    (stop) => `${rgba(stop.color, stop.alpha)} ${Math.round(stop.position * 100)}%`,
+  ).join(", ")})`;
 }
 
 export default function CrimeMap({ payload }: CrimeMapProps) {
   const features = payload.geojson.features;
   const values = features.map((feature) => Number(feature.properties.metric_value || 0));
   const maxValue = values.length > 0 ? Math.max(...values) : 0;
-  const legendStops = buildLegendStops(maxValue);
+  const legendTicks = buildLegendTicks(maxValue);
+  const legendGradient = buildLegendGradient();
 
   return (
     <div className="map-panel">
@@ -131,12 +165,21 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
       <div className="legend-card">
         <p className="legend-title">{payload.selected_macro}</p>
         <p className="legend-subtitle">Incidents per 1,000 residents</p>
-        {legendStops.map((stop) => (
-          <div key={stop.label} className="legend-row">
-            <span className="legend-swatch" style={{ backgroundColor: stop.color }} />
-            <span>{stop.label}</span>
+        {maxValue > 0 ? (
+          <>
+            <div className="legend-scale" style={{ backgroundImage: legendGradient }} />
+            <div className="legend-ticks" aria-hidden="true">
+              {legendTicks.map((tick) => (
+                <span key={tick.ratio}>{tick.label}</span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="legend-row">
+            <span className="legend-swatch" style={{ backgroundColor: EMPTY_COLOR }} />
+            <span>No reported incidents</span>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
