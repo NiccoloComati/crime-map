@@ -16,6 +16,7 @@ from crime_map import (
     get_supported_municipalities,
     safe_display_scale_max,
 )
+from crime_map.offense_mapping import macro_sort_key
 from crime_map.payloads import build_metric_geojson, map_center
 
 app = FastAPI(
@@ -62,7 +63,7 @@ def _resolve_municipality(municipality: str) -> tuple[str, dict[str, object]]:
 
 def _macro_options(bundle: dict[str, object]) -> list[str]:
     crime_df = bundle["crime"]
-    return sorted(crime_df["Macro Crime"].dropna().unique().tolist())
+    return sorted(crime_df["Macro Crime"].dropna().unique().tolist(), key=macro_sort_key)
 
 
 @app.get("/health")

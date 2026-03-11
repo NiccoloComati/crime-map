@@ -215,7 +215,7 @@ export default function CrimeExplorer() {
       <div className="explorer-header">
         <p className="explorer-kicker">Official records. Comparable neighborhood rates.</p>
         <p className="explorer-note">
-           Pick an area. Pick a crime type. Choose your horizon.<br />
+           Pick an area. Pick an incident category. Choose your horizon.<br />
            The map should do the rest.
         </p>
       </div>
@@ -235,7 +235,7 @@ export default function CrimeExplorer() {
           </select>
         </div>
         <div className="control">
-          <label htmlFor="macro">Crime Type</label>
+          <label htmlFor="macro">Incident Category</label>
           <select
             id="macro"
             value={selectedMacro}
@@ -337,12 +337,19 @@ export default function CrimeExplorer() {
             regional map.
           </p>
           <p>
-            The backend stores daily incident counts by neighborhood and crime family. The selected
-            date window is applied to those aggregates before rates are calculated.
+            The backend stores daily incident counts by neighborhood and a standardized incident
+            category. The selected date window is applied to those aggregates before rates are
+            calculated.
           </p>
           <p>
             Population normalization uses 2020 Census block counts. When a census block crosses
             neighborhood boundaries, its population is area-allocated across those polygons.
+          </p>
+          <p>
+            Municipal offense labels are standardized into a shared taxonomy before aggregation.
+            Where a close FBI/NIBRS-style offense family exists, the local label is mapped to that
+            family first; service and administrative calls are kept separate instead of being forced
+            into crime buckets.
           </p>
           <p>
             The color scale can be anchored to the selected area or to the full metro area. Colors

@@ -13,14 +13,12 @@ import requests
 from .cache import cache_path, clear_cache_dir, download_file, is_fresh
 from .config import (
     AREA_CRS,
-    BOSTON_CRIME_MACROS,
     BOSTON_CRIME_PACKAGE_ID,
     BOSTON_CRIME_PACKAGE_URL,
     BOSTON_NEIGHBORHOOD_NAME_MAP,
     BOSTON_NEIGHBORHOODS_URL,
     CAMBRIDGE_CRIME_DATASET_ID,
     CAMBRIDGE_CRIME_DOMAIN,
-    CAMBRIDGE_CRIME_MACROS,
     CAMBRIDGE_NEIGHBORHOOD_NAME_MAP,
     CAMBRIDGE_NEIGHBORHOODS_URL,
     CENSUS_BLOCK_GEOMETRY_URLS,
@@ -29,13 +27,13 @@ from .config import (
     POPULATION_YEAR_LABEL,
     SOMERVILLE_CRIME_DATASET_ID,
     SOMERVILLE_CRIME_DOMAIN,
-    SOMERVILLE_CRIME_MACROS,
     SOMERVILLE_NEIGHBORHOODS_URL,
     TARGET_CRS,
 )
+from .offense_mapping import classify_offense_series
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
-PROCESSED_BUNDLES_CACHE_NAME = "bundles_v2.pkl"
+PROCESSED_BUNDLES_CACHE_NAME = "bundles_v3.pkl"
 PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
@@ -233,7 +231,9 @@ def _normalize_boston_crime(raw: pd.DataFrame) -> pd.DataFrame:
         data["Neighborhood"] = raw[neighborhood_column].fillna("").astype(str).str.strip()
     else:
         data["Neighborhood"] = ""
-    data["Macro Crime"] = data["Crime"].map(BOSTON_CRIME_MACROS).fillna("Miscellaneous")
+    classifications = classify_offense_series("Boston", data["Crime"])
+    data["Offense Group"] = classifications["Offense Group"]
+    data["Macro Crime"] = classifications["Macro Crime"]
     data["City"] = "Boston"
     if district_column:
         data["BPD District"] = raw[district_column].fillna("").astype(str).str.strip()
@@ -257,7 +257,9 @@ def _normalize_cambridge_crime(raw: pd.DataFrame) -> pd.DataFrame:
     data["Crime"] = raw[crime_column].fillna("").astype(str).str.strip()
     data["Neighborhood"] = raw[neighborhood_column].fillna("").astype(str).str.strip()
     data["Neighborhood"] = data["Neighborhood"].replace(CAMBRIDGE_NEIGHBORHOOD_NAME_MAP)
-    data["Macro Crime"] = data["Crime"].map(CAMBRIDGE_CRIME_MACROS).fillna("Miscellaneous")
+    classifications = classify_offense_series("Cambridge", data["Crime"])
+    data["Offense Group"] = classifications["Offense Group"]
+    data["Macro Crime"] = classifications["Macro Crime"]
     data["City"] = "Cambridge"
     return data
 
@@ -284,7 +286,9 @@ def _normalize_somerville_crime(raw: pd.DataFrame, block_to_neighborhood: dict[s
     data = pd.DataFrame()
     data["Date"] = pd.to_datetime(date_text, errors="coerce")
     data["Crime"] = raw[crime_column].fillna("").astype(str).str.title().str.strip()
-    data["Macro Crime"] = data["Crime"].map(SOMERVILLE_CRIME_MACROS).fillna("Miscellaneous")
+    classifications = classify_offense_series("Somerville", data["Crime"])
+    data["Offense Group"] = classifications["Offense Group"]
+    data["Macro Crime"] = classifications["Macro Crime"]
     data["Neighborhood"] = block_codes.map(block_to_neighborhood)
     data["City"] = "Somerville"
     return data
@@ -491,7 +495,7 @@ def _add_geokey_and_clean(data: pd.DataFrame) -> pd.DataFrame:
     data = data[data["Neighborhood"].ne("")]
     data = data[data["Date"].notna()]
     data["GeoKey"] = data["City"] + "::" + data["Neighborhood"]
-    return data[["City", "Date", "Crime", "Macro Crime", "Neighborhood", "GeoKey"]]
+    return data[["City", "Date", "Crime", "Offense Group", "Macro Crime", "Neighborhood", "GeoKey"]]
 
 
 def _build_city_bundle(
