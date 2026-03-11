@@ -126,6 +126,13 @@ export default function CrimeExplorer() {
 
   return (
     <section className="explorer-shell">
+      <div className="explorer-header">
+        <p className="explorer-kicker">Official police records, tuned for neighborhood comparison</p>
+        <p className="explorer-note">
+          The controls sit up front; the map stays dominant. Adjust the window and read the city as
+          a field, not a stack of cards.
+        </p>
+      </div>
       <div className="controls-grid">
         <div className="control">
           <label htmlFor="municipality">Municipality</label>

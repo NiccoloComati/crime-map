@@ -8,17 +8,19 @@ type CrimeMapProps = {
   payload: ChoroplethPayload;
 };
 
+const COLOR_SCALE = ["#ffe08a", "#ffb347", "#e76f2d", "#bf3b1f", "#74140d"] as const;
+
 function getColor(value: number, maxValue: number): string {
   if (maxValue <= 0) {
-    return "#f9edc6";
+    return "#8e7f68";
   }
 
   const ratio = value / maxValue;
-  if (ratio >= 0.8) return "#8f1d14";
-  if (ratio >= 0.6) return "#c84b27";
-  if (ratio >= 0.4) return "#e58e2f";
-  if (ratio >= 0.2) return "#f4bf52";
-  return "#f9edc6";
+  if (ratio >= 0.8) return COLOR_SCALE[4];
+  if (ratio >= 0.6) return COLOR_SCALE[3];
+  if (ratio >= 0.4) return COLOR_SCALE[2];
+  if (ratio >= 0.2) return COLOR_SCALE[1];
+  return COLOR_SCALE[0];
 }
 
 export default function CrimeMap({ payload }: CrimeMapProps) {
@@ -26,11 +28,11 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
   const values = features.map((feature) => Number(feature.properties.metric_value || 0));
   const maxValue = values.length > 0 ? Math.max(...values) : 0;
   const legendStops = [
-    { label: "80-100%", color: getColor(maxValue * 0.9, maxValue) },
-    { label: "60-80%", color: getColor(maxValue * 0.7, maxValue) },
-    { label: "40-60%", color: getColor(maxValue * 0.5, maxValue) },
-    { label: "20-40%", color: getColor(maxValue * 0.3, maxValue) },
-    { label: "0-20%", color: getColor(maxValue * 0.1, maxValue) },
+    { label: "Peak", color: getColor(maxValue * 0.9, maxValue) },
+    { label: "High", color: getColor(maxValue * 0.7, maxValue) },
+    { label: "Elevated", color: getColor(maxValue * 0.5, maxValue) },
+    { label: "Low", color: getColor(maxValue * 0.3, maxValue) },
+    { label: "Near zero", color: getColor(maxValue * 0.1, maxValue) },
   ];
 
   return (
@@ -44,7 +46,7 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
         />
         <GeoJSON
           data={payload.geojson as never}
@@ -52,10 +54,10 @@ export default function CrimeMap({ payload }: CrimeMapProps) {
             const properties = feature?.properties as MetricFeatureProperties | undefined;
             const metricValue = Number(properties?.metric_value || 0);
             return {
-              color: "#332919",
-              weight: 1,
-              opacity: 0.45,
-              fillOpacity: 0.75,
+              color: "#efe5cf",
+              weight: 1.05,
+              opacity: 0.7,
+              fillOpacity: 0.82,
               fillColor: getColor(metricValue, maxValue),
             };
           }}
