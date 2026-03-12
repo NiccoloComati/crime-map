@@ -33,7 +33,7 @@ from .config import (
 from .offense_mapping import classify_offense_series
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
-PROCESSED_BUNDLES_CACHE_NAME = "bundles_v4.pkl"
+PROCESSED_BUNDLES_CACHE_VERSION = "v5"
 PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
@@ -536,34 +536,35 @@ def _build_city_bundle(
     }
 
 
-def _load_cached_bundles() -> dict[str, dict[str, object]] | None:
-    cached = cache_path(PROCESSED_BUNDLES_CACHE_NAME)
+def _bundle_cache_name(municipality: str) -> str:
+    slug = municipality.lower().replace(" ", "_")
+    return f"bundle_{slug}_{PROCESSED_BUNDLES_CACHE_VERSION}.pkl"
+
+
+def _load_cached_bundle(municipality: str) -> dict[str, object] | None:
+    cached = cache_path(_bundle_cache_name(municipality))
     if not is_fresh(cached, PROCESSED_BUNDLES_MAX_AGE_HOURS):
         return None
 
     try:
         with cached.open("rb") as handle:
-            bundles = pickle.load(handle)
+            bundle = pickle.load(handle)
     except Exception:
         return None
 
-    if not isinstance(bundles, dict):
+    if not isinstance(bundle, dict):
         return None
-    return bundles
+    return bundle
 
 
 def _store_cached_bundles(bundles: dict[str, dict[str, object]]) -> None:
-    cached = cache_path(PROCESSED_BUNDLES_CACHE_NAME)
-    with cached.open("wb") as handle:
-        pickle.dump(bundles, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    for municipality, bundle in bundles.items():
+        cached = cache_path(_bundle_cache_name(municipality))
+        with cached.open("wb") as handle:
+            pickle.dump(bundle, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-@lru_cache(maxsize=1)
-def _load_bundles() -> dict[str, dict[str, object]]:
-    cached = _load_cached_bundles()
-    if cached is not None:
-        return cached
-
+def _build_all_bundles() -> dict[str, dict[str, object]]:
     blocks = _load_census_blocks(force_refresh=False)
     cambridge_geo = _load_cambridge_geo(force_refresh=False)
     boston_geo = _load_boston_geo(force_refresh=False)
@@ -650,23 +651,31 @@ def _load_bundles() -> dict[str, dict[str, object]]:
     return bundles
 
 
+@lru_cache(maxsize=1)
+def _load_bundle(municipality: str) -> dict[str, object]:
+    resolved = municipality if municipality in SUPPORTED_MUNICIPALITIES else "All Metro"
+    cached = _load_cached_bundle(resolved)
+    if cached is not None:
+        return cached
+
+    bundles = _build_all_bundles()
+    return bundles[resolved]
+
+
 def get_supported_municipalities() -> list[str]:
     return SUPPORTED_MUNICIPALITIES.copy()
 
 
 def get_bundle(municipality: str) -> dict[str, object]:
-    bundles = _load_bundles()
-    if municipality in bundles:
-        return bundles[municipality]
-    return bundles["All Metro"]
+    return _load_bundle(municipality)
 
 
 def warm_processed_cache() -> list[str]:
-    _load_bundles()
+    _build_all_bundles()
     return get_supported_municipalities()
 
 
 def reset_state(*, clear_disk_cache: bool = False) -> None:
-    _load_bundles.cache_clear()
+    _load_bundle.cache_clear()
     if clear_disk_cache:
         clear_cache_dir()
