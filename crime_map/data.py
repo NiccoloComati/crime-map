@@ -34,7 +34,6 @@ from .offense_mapping import classify_offense_series
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
 PROCESSED_BUNDLES_CACHE_VERSION = "v5"
-PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
 def _first_existing_column(frame: pd.DataFrame, candidates: list[str]) -> str:
@@ -543,7 +542,9 @@ def _bundle_cache_name(municipality: str) -> str:
 
 def _load_cached_bundle(municipality: str) -> dict[str, object] | None:
     cached = cache_path(_bundle_cache_name(municipality))
-    if not is_fresh(cached, PROCESSED_BUNDLES_MAX_AGE_HOURS):
+    # Processed bundles are versioned artifacts prewarmed at build time.
+    # They should stay valid until the next deploy rather than expiring on a timer.
+    if not cached.exists():
         return None
 
     try:
