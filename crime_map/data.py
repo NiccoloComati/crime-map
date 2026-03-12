@@ -33,7 +33,7 @@ from .config import (
 from .offense_mapping import classify_offense_series
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
-PROCESSED_BUNDLES_CACHE_NAME = "bundles_v3.pkl"
+PROCESSED_BUNDLES_CACHE_NAME = "bundles_v4.pkl"
 PROCESSED_BUNDLES_MAX_AGE_HOURS = 12.0
 
 
@@ -498,6 +498,16 @@ def _add_geokey_and_clean(data: pd.DataFrame) -> pd.DataFrame:
     return data[["City", "Date", "Crime", "Offense Group", "Macro Crime", "Neighborhood", "GeoKey"]]
 
 
+def _optimize_aggregated_crime(aggregated_crime: pd.DataFrame) -> pd.DataFrame:
+    optimized = aggregated_crime.copy()
+    optimized["GeoKey"] = optimized["GeoKey"].astype("category")
+    optimized["Macro Crime"] = optimized["Macro Crime"].astype("category")
+    optimized["Incident_Count"] = pd.to_numeric(
+        optimized["Incident_Count"], errors="coerce"
+    ).fillna(0).astype("int32")
+    return optimized.sort_values(["Date", "GeoKey", "Macro Crime"], ignore_index=True)
+
+
 def _build_city_bundle(
     city: str,
     crime: pd.DataFrame,
@@ -515,7 +525,7 @@ def _build_city_bundle(
         .size()
         .rename(columns={"size": "Incident_Count"})
     )
-    aggregated_crime["Incident_Count"] = aggregated_crime["Incident_Count"].astype("int32")
+    aggregated_crime = _optimize_aggregated_crime(aggregated_crime)
 
     return {
         "crime": aggregated_crime,
@@ -623,6 +633,7 @@ def _load_bundles() -> dict[str, dict[str, object]]:
         ],
         ignore_index=True,
     )
+    all_crime = _optimize_aggregated_crime(all_crime)
     all_geo = gpd.GeoDataFrame(
         pd.concat([cambridge_geo, boston_geo, somerville_geo], ignore_index=True),
         geometry="geometry",
