@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .env
+.env.codex
+.env.codex.ps1
 .venv/
 venv/
 .python-version

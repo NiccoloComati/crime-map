@@ -7,13 +7,13 @@ export default function HomePage() {
         <p className="eyebrow">Metro Crime Atlas</p>
         <div className="hero-grid">
           <div className="hero-copy-block">
-            <h1>Neighborhood crime rates, mapped without the dashboard clutter.</h1>
+            <h1>Neighborhood crime rates, mapped without the clutter.</h1>
           </div>
           <div className="hero-side">
             <p className="hero-copy">
-              Official police data.<br />
-              Population-normalized rates.<br />
-              Relatively-ranked neighborhoods.
+              Official Police and Census data.<br />
+              Population-adjusted rates.<br />
+              Clearly-ranked neighborhoods.
             </p>
           </div>
         </div>
