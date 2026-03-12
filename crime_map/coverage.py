@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 CURRENT_AGGREGATE_NAME = "All Metro"
-CURRENT_AGGREGATE_LABEL = "Boston Metro (current coverage)"
+CURRENT_AGGREGATE_LABEL = "Boston Metro"
 CURRENT_AGGREGATE_MEMBERS = ["Boston", "Cambridge", "Somerville"]
 
 OFFICIAL_METRO_REFERENCE_NAME = "Boston-Cambridge-Newton, MA-NH Metropolitan Statistical Area"

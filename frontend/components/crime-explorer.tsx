@@ -20,7 +20,7 @@ const CrimeMap = dynamic(() => import("@/components/crime-map"), {
 
 const MUNICIPALITY_ORDER = ["All Metro", "Boston", "Cambridge", "Somerville"] as const;
 const MUNICIPALITY_LABELS: Record<string, string> = {
-  "All Metro": "Boston Metro (current coverage)",
+  "All Metro": "Boston Metro",
   Boston: "Boston",
   Cambridge: "Cambridge",
   Somerville: "Somerville",
@@ -336,8 +336,8 @@ export default function CrimeExplorer() {
           <p>
             The current metro aggregate includes{" "}
             {(coverage?.current_aggregate_members ?? ["Boston", "Cambridge", "Somerville"]).join(", ")}.
-            The official Census metro reference is larger, so the aggregate is labeled as current
-            coverage rather than presented as the full metro area.
+            The official Census metro reference is larger, so this view reflects the municipalities
+            currently supported by the app rather than the full Census-defined metro area.
           </p>
           <p>
             Areas with resident population below 100 are grayed out and excluded from rate ranking.
