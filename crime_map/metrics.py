@@ -32,14 +32,17 @@ def compute_relative_rates(
 ) -> pd.DataFrame:
     if "Incident_Count" in filtered_crime.columns:
         crime_table_macro = (
-            filtered_crime.groupby(["GeoKey", "Macro Crime"])["Incident_Count"]
+            filtered_crime.groupby(["GeoKey", "Macro Crime"], observed=False)["Incident_Count"]
             .sum()
             .unstack("Macro Crime")
             .fillna(0)
         )
     else:
         crime_table_macro = (
-            filtered_crime.groupby(["GeoKey", "Macro Crime"]).size().unstack("Macro Crime").fillna(0)
+            filtered_crime.groupby(["GeoKey", "Macro Crime"], observed=False)
+            .size()
+            .unstack("Macro Crime")
+            .fillna(0)
         )
     population_series = pd.Series(population, dtype="float64")
     rates = crime_table_macro.reindex(population_series.index, fill_value=0).div(population_series, axis=0)

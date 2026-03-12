@@ -11,7 +11,7 @@ class CoverageTests(unittest.TestCase):
     def test_supported_municipalities_match_current_app_scope(self) -> None:
         self.assertEqual(
             get_supported_municipality_names(),
-            ["All Metro", "Boston", "Cambridge", "Somerville"],
+            ["All Metro", "Belmont", "Boston", "Cambridge", "Reading", "Somerville"],
         )
 
     def test_coverage_payload_exposes_current_aggregate_label(self) -> None:

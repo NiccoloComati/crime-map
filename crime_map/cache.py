@@ -37,12 +37,13 @@ def download_file(
     max_age_hours: float = 24.0,
     force_refresh: bool = False,
     timeout: int = 120,
+    headers: dict[str, str] | None = None,
 ) -> Path:
     destination = cache_path(filename)
     if not force_refresh and is_fresh(destination, max_age_hours):
         return destination
 
-    response = requests.get(url, timeout=timeout)
+    response = requests.get(url, timeout=timeout, headers=headers)
     response.raise_for_status()
     destination.write_bytes(response.content)
     return destination
