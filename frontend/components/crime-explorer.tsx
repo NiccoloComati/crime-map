@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 
 import {
   ChoroplethPayload,
+  CoveragePayload,
   MunicipalityMetadata,
+  fetchCoverage,
   fetchMunicipalities,
   fetchMunicipalityChoropleth,
   fetchMunicipalityMetadata,
@@ -18,7 +20,7 @@ const CrimeMap = dynamic(() => import("@/components/crime-map"), {
 
 const MUNICIPALITY_ORDER = ["All Metro", "Boston", "Cambridge", "Somerville"] as const;
 const MUNICIPALITY_LABELS: Record<string, string> = {
-  "All Metro": "Boston (All metro)",
+  "All Metro": "Boston Metro (current coverage)",
   Boston: "Boston",
   Cambridge: "Cambridge",
   Somerville: "Somerville",
@@ -31,16 +33,19 @@ function orderMunicipalities(options: string[]): string[] {
   return [...known, ...extras];
 }
 
-function municipalityLabel(option: string): string {
+function municipalityLabel(option: string, coverage: CoveragePayload | null): string {
+  if (option === "All Metro") {
+    return coverage?.current_aggregate_label ?? MUNICIPALITY_LABELS[option];
+  }
   return MUNICIPALITY_LABELS[option] ?? option;
 }
 
-function municipalityDropdownLabel(option: string): string {
+function municipalityDropdownLabel(option: string, coverage: CoveragePayload | null): string {
   if (option === "All Metro") {
-    return municipalityLabel(option);
+    return municipalityLabel(option, coverage);
   }
 
-  return `\u00A0\u00A0${municipalityLabel(option)}`;
+  return `\u00A0\u00A0${municipalityLabel(option, coverage)}`;
 }
 
 function populationBaselineLabel(populationYear: string | null | undefined): string {
@@ -87,6 +92,7 @@ function defaultWindowStartDate(minDate: string, maxDate: string): string {
 export default function CrimeExplorer() {
   const [municipalities, setMunicipalities] = useState<string[]>([]);
   const [municipality, setMunicipality] = useState("");
+  const [coverage, setCoverage] = useState<CoveragePayload | null>(null);
   const [metadata, setMetadata] = useState<MunicipalityMetadata | null>(null);
   const [selectedMacro, setSelectedMacro] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -100,12 +106,16 @@ export default function CrimeExplorer() {
 
     async function loadMunicipalities() {
       try {
-        const nextMunicipalities = await fetchMunicipalities();
+        const [nextMunicipalities, nextCoverage] = await Promise.all([
+          fetchMunicipalities(),
+          fetchCoverage(),
+        ]);
         if (cancelled) {
           return;
         }
 
         const orderedMunicipalities = orderMunicipalities(nextMunicipalities);
+        setCoverage(nextCoverage);
         setMunicipalities(orderedMunicipalities);
         setMunicipality(orderedMunicipalities[0] ?? "");
         setError("");
@@ -212,7 +222,7 @@ export default function CrimeExplorer() {
           >
             {municipalities.map((option) => (
               <option key={option} value={option}>
-                {municipalityDropdownLabel(option)}
+                {municipalityDropdownLabel(option, coverage)}
               </option>
             ))}
           </select>
@@ -262,7 +272,7 @@ export default function CrimeExplorer() {
         <article className="stat-card">
           <p className="stat-label">Active Area</p>
           <p className="stat-value">
-            {municipalityLabel(payload?.municipality || municipality || "...")}
+            {municipalityLabel(payload?.municipality || municipality || "...", coverage)}
           </p>
         </article>
         <article className="stat-card">
@@ -324,6 +334,12 @@ export default function CrimeExplorer() {
             legend shows whole-number incidents per 1,000 residents for the active display ceiling.
           </p>
           <p>
+            The current metro aggregate includes{" "}
+            {(coverage?.current_aggregate_members ?? ["Boston", "Cambridge", "Somerville"]).join(", ")}.
+            The official Census metro reference is larger, so the aggregate is labeled as current
+            coverage rather than presented as the full metro area.
+          </p>
+          <p>
             Areas with resident population below 100 are grayed out and excluded from rate ranking.
             Areas with resident population below 500 keep their computed crime score, but they are
             excluded from the scale calibration and flagged as unstable because a very small
@@ -338,6 +354,16 @@ export default function CrimeExplorer() {
             Date coverage follows the official source feeds. Boston is assembled from annual
             historical files plus the current 2023-to-present official feed, and the interface
             defaults to the latest five-year window available for the selected area.
+          </p>
+          <p>
+            New municipalities are added only when the published official sources support a
+            defensible map. Depending on what a municipality officially publishes, future coverage
+            may appear at neighborhood, precinct, or municipality level instead of forcing a false
+            neighborhood view.
+          </p>
+          <p>
+            Official-source municipalities currently under review include Brookline, Medford,
+            Chelsea, and Everett.
           </p>
         </div>
       </section>

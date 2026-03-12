@@ -32,6 +32,27 @@ export type MunicipalityMetadata = {
   max_date: string;
 };
 
+export type CoverageEntry = {
+  name: string;
+  label: string;
+  status: string;
+  geography_level: string;
+  temporal_granularity: string;
+  source_kind: string;
+  included_in_current_aggregate: boolean;
+  notes: string;
+  official_source_urls: string[];
+};
+
+export type CoveragePayload = {
+  official_metro_reference_name: string;
+  official_metro_reference_url: string;
+  current_aggregate_name: string;
+  current_aggregate_label: string;
+  current_aggregate_members: string[];
+  municipalities: CoverageEntry[];
+};
+
 export type ChoroplethPayload = {
   municipality: string;
   selected_macro: string;
@@ -75,6 +96,13 @@ export async function fetchMunicipalities(): Promise<string[]> {
   });
   const payload = await parseJson<{ municipalities: string[] }>(response);
   return payload.municipalities;
+}
+
+export async function fetchCoverage(): Promise<CoveragePayload> {
+  const response = await fetch(apiUrl("api/v1/coverage"), {
+    cache: "no-store",
+  });
+  return parseJson<CoveragePayload>(response);
 }
 
 export async function fetchMunicipalityMetadata(

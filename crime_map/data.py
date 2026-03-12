@@ -30,9 +30,9 @@ from .config import (
     SOMERVILLE_NEIGHBORHOODS_URL,
     TARGET_CRS,
 )
+from .coverage import get_supported_municipality_names
 from .offense_mapping import classify_offense_series
 
-SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
 PROCESSED_BUNDLES_CACHE_VERSION = "v6"
 
 
@@ -677,7 +677,8 @@ def _build_all_bundles() -> dict[str, dict[str, object]]:
 
 @lru_cache(maxsize=1)
 def _load_bundle(municipality: str) -> dict[str, object]:
-    resolved = municipality if municipality in SUPPORTED_MUNICIPALITIES else "All Metro"
+    supported = get_supported_municipality_names()
+    resolved = municipality if municipality in supported else "All Metro"
     cached = _load_cached_bundle(resolved)
     if cached is not None:
         return cached
@@ -687,7 +688,7 @@ def _load_bundle(municipality: str) -> dict[str, object]:
 
 
 def get_supported_municipalities() -> list[str]:
-    return SUPPORTED_MUNICIPALITIES.copy()
+    return get_supported_municipality_names()
 
 
 def get_bundle(municipality: str) -> dict[str, object]:

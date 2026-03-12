@@ -11,6 +11,7 @@ from crime_map import (
     apply_rate_guardrails,
     clamp_dates,
     compute_relative_rates,
+    coverage_payload,
     filter_crime_by_date,
     get_bundle,
     get_supported_municipalities,
@@ -74,6 +75,11 @@ def health() -> dict[str, str]:
 @app.get("/api/v1/municipalities")
 def list_municipalities() -> dict[str, list[str]]:
     return {"municipalities": get_supported_municipalities()}
+
+
+@app.get("/api/v1/coverage")
+def coverage() -> dict[str, object]:
+    return coverage_payload()
 
 
 @app.get("/api/v1/municipalities/{municipality}/metadata")
