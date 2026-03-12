@@ -33,7 +33,7 @@ from .config import (
 from .offense_mapping import classify_offense_series
 
 SUPPORTED_MUNICIPALITIES = ["All Metro", "Cambridge", "Boston", "Somerville"]
-PROCESSED_BUNDLES_CACHE_VERSION = "v5"
+PROCESSED_BUNDLES_CACHE_VERSION = "v6"
 
 
 def _first_existing_column(frame: pd.DataFrame, candidates: list[str]) -> str:
@@ -68,6 +68,29 @@ def _clean_geometry(geo_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     geo_df = geo_df[geo_df["geometry"].notna()]
     geo_df = geo_df[~geo_df.geometry.is_empty]
     return geo_df
+
+
+def _parse_mixed_datetime(values: pd.Series) -> pd.Series:
+    normalized = values.fillna("").astype(str).str.strip()
+
+    try:
+        parsed = pd.to_datetime(normalized, errors="coerce", format="mixed", utc=True)
+        return parsed.dt.tz_localize(None)
+    except TypeError:
+        timezone_mask = normalized.str.contains(r"(?:Z|[+-]\d{2}(?::?\d{2})?)$", regex=True)
+        parsed = pd.Series(pd.NaT, index=normalized.index, dtype="datetime64[ns]")
+
+        if timezone_mask.any():
+            parsed.loc[timezone_mask] = (
+                pd.to_datetime(normalized.loc[timezone_mask], errors="coerce", utc=True)
+                .dt.tz_localize(None)
+            )
+        if (~timezone_mask).any():
+            parsed.loc[~timezone_mask] = pd.to_datetime(
+                normalized.loc[~timezone_mask], errors="coerce"
+            )
+
+        return parsed
 
 
 def _read_zip_shapefile(zip_path: str) -> gpd.GeoDataFrame:
@@ -224,7 +247,7 @@ def _normalize_boston_crime(raw: pd.DataFrame) -> pd.DataFrame:
     )
 
     data = pd.DataFrame()
-    data["Date"] = pd.to_datetime(raw[date_column], errors="coerce")
+    data["Date"] = _parse_mixed_datetime(raw[date_column])
     data["Crime"] = raw[crime_column].fillna("").astype(str).str.title().str.strip()
     if neighborhood_column:
         data["Neighborhood"] = raw[neighborhood_column].fillna("").astype(str).str.strip()

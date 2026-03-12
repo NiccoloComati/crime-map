@@ -6,8 +6,6 @@ import type { ChoroplethPayload, MetricFeatureProperties } from "@/lib/api";
 
 type CrimeMapProps = {
   payload: ChoroplethPayload;
-  scalePayload: ChoroplethPayload;
-  scaleReferenceLabel: string;
 };
 
 type ColorStop = {
@@ -169,9 +167,9 @@ function buildLegendGradient(): string {
   ).join(", ")})`;
 }
 
-export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }: CrimeMapProps) {
+export default function CrimeMap({ payload }: CrimeMapProps) {
   const features = payload.geojson.features;
-  const scaleFeatures = scalePayload.geojson.features;
+  const scaleFeatures = payload.geojson.features;
   const rateValues = scaleFeatures.flatMap((feature) => {
     if (!isRateValid(feature.properties) || feature.properties.metric_value === null) {
       return [];
@@ -210,7 +208,7 @@ export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }:
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <GeoJSON
-          key={`${payload.municipality}-${payload.selected_macro}-${payload.start_date}-${payload.end_date}-${scalePayload.municipality}-${scaleReferenceLabel}`}
+          key={`${payload.municipality}-${payload.selected_macro}-${payload.start_date}-${payload.end_date}`}
           data={payload.geojson as never}
           style={(feature) => {
             const properties = feature?.properties as MetricFeatureProperties | undefined;
@@ -255,7 +253,6 @@ export default function CrimeMap({ payload, scalePayload, scaleReferenceLabel }:
       <div className="legend-card">
         <p className="legend-title">{payload.selected_macro}</p>
         <p className="legend-subtitle">Incidents per 1,000 residents</p>
-        <p className="legend-note">{scaleReferenceLabel}</p>
         {referenceMaxValue > 0 ? (
           <>
             <div className="legend-scale" style={{ backgroundImage: legendGradient }} />
