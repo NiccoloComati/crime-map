@@ -35,25 +35,10 @@ MUNICIPALITY_COVERAGE: tuple[MunicipalityCoverage, ...] = (
         source_kind="derived from supported municipal official feeds",
         included_in_current_aggregate=False,
         notes=(
-            "This aggregate currently combines the supported neighborhood-level municipalities. "
-            "Standalone municipality-level additions are kept out of this map until comparable submunicipal "
-            "geometry is available. It is not yet the full official Census metro area."
+            "This aggregate currently combines the municipalities supported by the app. "
+            "It is not yet the full official Census metro area."
         ),
         official_source_urls=(OFFICIAL_METRO_REFERENCE_URL,),
-    ),
-    MunicipalityCoverage(
-        name="Belmont",
-        label="Belmont",
-        status="supported",
-        geography_level="municipality",
-        temporal_granularity="daily",
-        source_kind="official municipal police public-log PDFs plus Census town boundary",
-        included_in_current_aggregate=False,
-        notes=(
-            "Belmont is currently supported as a municipality-wide map because the official public log is "
-            "available but a defensible submunicipal crime geography is not yet wired into the app."
-        ),
-        official_source_urls=("https://www.belmont-ma.gov/2225/Call-Log",),
     ),
     MunicipalityCoverage(
         name="Boston",
@@ -81,41 +66,6 @@ MUNICIPALITY_COVERAGE: tuple[MunicipalityCoverage, ...] = (
         official_source_urls=(
             "https://data.cambridgema.gov/Public-Safety/Crime-Incident-Reports/xuad-73uj",
             "https://data.cambridgema.gov/Boundaries/Neighborhoods/k3pi-9823",
-        ),
-    ),
-    MunicipalityCoverage(
-        name="Reading",
-        label="Reading",
-        status="supported",
-        geography_level="municipality",
-        temporal_granularity="daily",
-        source_kind="official municipal police public-log PDFs plus Census town boundary",
-        included_in_current_aggregate=False,
-        notes=(
-            "Reading is currently supported as a municipality-wide map from the official daily police log. "
-            "It is kept out of the metro aggregate until comparable submunicipal geometry is added."
-        ),
-        official_source_urls=("https://www.readingma.gov/752/Daily-Police-Log",),
-    ),
-    MunicipalityCoverage(
-        name="Lexington",
-        label="Lexington",
-        status="candidate_logs_only",
-        geography_level="municipality",
-        temporal_granularity="daily",
-        source_kind="official municipal police public-log PDFs plus Census town boundary",
-        included_in_current_aggregate=False,
-        notes=(
-            "Lexington publishes an official weekly public-log archive and the extraction path is workable, "
-            "but it has not yet been promoted into supported coverage because the current archive size would "
-            "materially lengthen the bundle prewarm step."
-        ),
-        official_source_urls=(
-            "https://www.lexingtonma.gov/489/Weekly-Police-Logs",
-            "https://www.lexingtonma.gov/2496/2025-Weekly-Police-Logs",
-            "https://www.lexingtonma.gov/2278/2024-Weekly-Police-Logs",
-            "https://www.lexingtonma.gov/1940/2023-Weekly-Police-Logs",
-            "https://www.lexingtonma.gov/1941/2022-Weekly-Police-Logs",
         ),
     ),
     MunicipalityCoverage(
@@ -195,34 +145,6 @@ MUNICIPALITY_COVERAGE: tuple[MunicipalityCoverage, ...] = (
             "https://everettpolicema.com/?page_id=1545",
             "https://www.arcgis.com/sharing/rest/content/items/7f5035d6831a4386a16bbe82cbcc7ad7",
         ),
-    ),
-    MunicipalityCoverage(
-        name="Burlington",
-        label="Burlington",
-        status="candidate_logs_only",
-        geography_level="municipality",
-        temporal_granularity="weekly public logs",
-        source_kind="official municipal police log archive",
-        included_in_current_aggregate=False,
-        notes=(
-            "Burlington publishes an official police-log archive. The archive path is promising, but it still "
-            "needs a stable full-history extraction path before promotion into supported coverage."
-        ),
-        official_source_urls=("https://www.burlington.org/Archive.aspx",),
-    ),
-    MunicipalityCoverage(
-        name="Watertown",
-        label="Watertown",
-        status="candidate_logs_only",
-        geography_level="municipality",
-        temporal_granularity="weekly dispatch logs",
-        source_kind="official police dispatch-log archive",
-        included_in_current_aggregate=False,
-        notes=(
-            "Watertown publishes an official dispatch-log archive. The current public archive appears shallow, "
-            "so it remains a candidate until the available history and extraction path are strong enough."
-        ),
-        official_source_urls=("https://www.watertownpd.org/Archive.aspx?AMID=37",),
     ),
 )
 

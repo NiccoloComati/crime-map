@@ -18,20 +18,11 @@ const CrimeMap = dynamic(() => import("@/components/crime-map"), {
   loading: () => <div className="map-loading">Loading map...</div>,
 });
 
-const MUNICIPALITY_ORDER = [
-  "All Metro",
-  "Boston",
-  "Cambridge",
-  "Somerville",
-  "Belmont",
-  "Reading",
-] as const;
+const MUNICIPALITY_ORDER = ["All Metro", "Boston", "Cambridge", "Somerville"] as const;
 const MUNICIPALITY_LABELS: Record<string, string> = {
   "All Metro": "Boston Metro",
-  Belmont: "Belmont",
   Boston: "Boston",
   Cambridge: "Cambridge",
-  Reading: "Reading",
   Somerville: "Somerville",
 };
 const DEFAULT_WINDOW_YEARS = 5;
@@ -319,10 +310,9 @@ export default function CrimeExplorer() {
         </div>
         <div className="methodology-grid">
           <p>
-            Crime totals come from official municipal police sources. When a city publishes a
-            structured open-data feed, the atlas uses that feed directly. When a city only
-            publishes official public police logs, the atlas aggregates those logs into daily
-            counts instead of pretending a neighborhood feed exists.
+            Crime totals come from official municipal police open-data feeds for the areas
+            currently covered by the app. The metro view combines those same local feeds into one
+            regional map.
           </p>
           <p>
             The backend stores daily incident counts by neighborhood and a standardized incident
@@ -346,10 +336,8 @@ export default function CrimeExplorer() {
           <p>
             The current metro aggregate includes{" "}
             {(coverage?.current_aggregate_members ?? ["Boston", "Cambridge", "Somerville"]).join(", ")}.
-            Standalone municipality-level additions stay out of that aggregate until comparable
-            neighborhood or precinct geometry exists. The official Census metro reference is
-            larger, so this view reflects the municipalities currently supported by the app rather
-            than the full Census-defined metro area.
+            The official Census metro reference is larger, so this view reflects the municipalities
+            currently supported by the app rather than the full Census-defined metro area.
           </p>
           <p>
             Areas with resident population below 100 are grayed out and excluded from rate ranking.
@@ -364,21 +352,18 @@ export default function CrimeExplorer() {
           </p>
           <p>
             Date coverage follows the official source feeds. Boston is assembled from annual
-            historical files plus the current 2023-to-present official feed. Reading currently
-            comes from an official daily police-log archive, and Belmont currently comes from the
-            official public call-log archive that is available online. The interface defaults to
-            the latest five-year window available for the selected area.
+            historical files plus the current 2023-to-present official feed, and the interface
+            defaults to the latest five-year window available for the selected area.
           </p>
           <p>
             New municipalities are added only when the published official sources support a
-            defensible map. Depending on what a municipality actually publishes, coverage may
-            appear at neighborhood, precinct, or municipality level instead of forcing a false
-            neighborhood view. Municipality-level fallback uses official Census town boundaries
-            until a better official local geography is available.
+            defensible map. Depending on what a municipality officially publishes, future coverage
+            may appear at neighborhood, precinct, or municipality level instead of forcing a false
+            neighborhood view.
           </p>
           <p>
-            Official-source municipalities still under review include Brookline, Lexington,
-            Medford, Chelsea, Everett, Burlington, and Watertown.
+            Official-source municipalities currently under review include Brookline, Medford,
+            Chelsea, and Everett.
           </p>
         </div>
       </section>

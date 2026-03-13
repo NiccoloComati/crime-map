@@ -3,6 +3,5 @@ fastapi
 geopandas
 ipywidgets
 pandas
-pdfplumber
 requests
 uvicorn

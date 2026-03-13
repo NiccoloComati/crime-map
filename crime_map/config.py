@@ -38,19 +38,10 @@ CENSUS_BLOCK_GEOMETRY_URLS = {
 CENSUS_BLOCK_POPULATION_API = (
     "https://api.census.gov/data/2020/dec/pl?get=P1_001N&for=block:*&in=state:25%20county:{county}"
 )
-CENSUS_MASSACHUSETTS_COUSUB_URL = "https://www2.census.gov/geo/tiger/TIGER2020/COUSUB/tl_2020_25_cousub.zip"
-CENSUS_MUNICIPALITY_BOUNDARY_NAMES = {
-    "Belmont": "Belmont town",
-    "Lexington": "Lexington town",
-    "Reading": "Reading town",
-}
 
 MUNICIPALITY_ZOOM = {
-    "Belmont": 13.5,
     "Cambridge": 13.0,
     "Boston": 12.0,
-    "Lexington": 13.0,
-    "Reading": 13.0,
     "Somerville": 13.0,
     "All Metro": 11.5,
 }

@@ -6,7 +6,6 @@ from crime_map.offense_mapping import (
     PROPERTY_CRIME,
     PUBLIC_ORDER_WEAPONS,
     SERVICE_ADMINISTRATIVE,
-    TRAFFIC_OUI,
     VIOLENT_CRIME,
     FRAUD_FINANCIAL_CRIME,
     classify_offense_label,
@@ -46,18 +45,6 @@ class OffenseMappingTests(unittest.TestCase):
         self.assertEqual(
             classify_offense_label("Somerville", "Identity Theft").macro,
             FRAUD_FINANCIAL_CRIME,
-        )
-
-    def test_plain_theft_stays_property(self) -> None:
-        self.assertEqual(
-            classify_offense_label("Belmont", "Theft").macro,
-            PROPERTY_CRIME,
-        )
-
-    def test_traffic_stop_stays_traffic(self) -> None:
-        self.assertEqual(
-            classify_offense_label("Belmont", "Traffic Stop").macro,
-            TRAFFIC_OUI,
         )
 
     def test_macro_order_keeps_violent_before_service(self) -> None:

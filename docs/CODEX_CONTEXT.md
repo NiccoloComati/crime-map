@@ -20,7 +20,6 @@
 - Runtime stores aggregated incident counts, not raw incidents
 - Crime is grouped into standardized macro categories through `crime_map/offense_mapping.py`
 - Population comes from 2020 Census block population, area-allocated to neighborhood polygons
-- Mixed-granularity support is allowed when official sources require it: neighborhood, precinct, or municipality
 - Areas with extremely small resident population are excluded from stable rate ranking and rendered neutral
 
 ## Deployment
@@ -37,7 +36,6 @@
 - Aggregated crime bundle tables were compacted with categorical columns and `int32` counts
 - Processed bundles are cached per municipality instead of loading the whole metro cache on first request
 - Prewarmed processed bundles are versioned and do not expire on a time window during runtime
-- Official municipality-level PDF log ingestion exists for fallback coverage where a city does not publish a clean incident feed
 
 ## Frontend State
 
@@ -45,8 +43,6 @@
 - Current design direction is polished, direct, and non-demo-like
 - Choropleth uses proportional robust-linear scaling with small-population safeguards
 - The map currently uses a CARTO basemap and partially transparent polygon fills
-- `Boston Metro` still aggregates only the neighborhood-level municipalities in current support
-- Standalone municipality-level coverage is now live for `Belmont` and `Reading`
 
 ## User Preferences
 

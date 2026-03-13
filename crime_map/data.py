@@ -23,8 +23,6 @@ from .config import (
     CAMBRIDGE_NEIGHBORHOODS_URL,
     CENSUS_BLOCK_GEOMETRY_URLS,
     CENSUS_BLOCK_POPULATION_API,
-    CENSUS_MASSACHUSETTS_COUSUB_URL,
-    CENSUS_MUNICIPALITY_BOUNDARY_NAMES,
     MUNICIPALITY_ZOOM,
     POPULATION_YEAR_LABEL,
     SOMERVILLE_CRIME_DATASET_ID,
@@ -33,10 +31,9 @@ from .config import (
     TARGET_CRS,
 )
 from .coverage import get_supported_municipality_names
-from .municipal_logs import load_belmont_crime, load_reading_crime
 from .offense_mapping import classify_offense_series
 
-PROCESSED_BUNDLES_CACHE_VERSION = "v7"
+PROCESSED_BUNDLES_CACHE_VERSION = "v6"
 
 
 def _first_existing_column(frame: pd.DataFrame, candidates: list[str]) -> str:
@@ -361,20 +358,6 @@ def _prepare_geography(geo_df: gpd.GeoDataFrame, *, city: str, neighborhood_colu
     return prepared.dissolve(by=["City", "Mapped_Name", "GeoKey"], as_index=False)
 
 
-def _prepare_single_area_geography(
-    geo_df: gpd.GeoDataFrame,
-    *,
-    city: str,
-    mapped_name: str,
-) -> gpd.GeoDataFrame:
-    prepared = _ensure_latlon(_clean_geometry(geo_df))
-    prepared["City"] = city
-    prepared["Mapped_Name"] = mapped_name
-    prepared["GeoKey"] = prepared["City"] + "::" + prepared["Mapped_Name"]
-    prepared = prepared[["City", "Mapped_Name", "GeoKey", "geometry"]].copy()
-    return prepared.dissolve(by=["City", "Mapped_Name", "GeoKey"], as_index=False)
-
-
 def _load_cambridge_geo(force_refresh: bool = False) -> gpd.GeoDataFrame:
     path = download_file(
         CAMBRIDGE_NEIGHBORHOODS_URL,
@@ -414,26 +397,6 @@ def _load_somerville_geo(force_refresh: bool = False) -> gpd.GeoDataFrame:
     geo = _read_zip_shapefile(str(zip_path))
     neighborhood_column = _first_existing_column(geo, ["NBHD", "Neighborhood"])
     return _prepare_geography(geo, city="Somerville", neighborhood_column=neighborhood_column)
-
-
-def _load_massachusetts_cousub_geo(force_refresh: bool = False) -> gpd.GeoDataFrame:
-    zip_path = download_file(
-        CENSUS_MASSACHUSETTS_COUSUB_URL,
-        "massachusetts_cousub.zip",
-        max_age_hours=168.0,
-        force_refresh=force_refresh,
-    )
-    return _read_zip_shapefile(str(zip_path))
-
-
-def _load_census_municipality_geo(city: str, *, force_refresh: bool = False) -> gpd.GeoDataFrame:
-    target_name = CENSUS_MUNICIPALITY_BOUNDARY_NAMES[city].casefold()
-    geo = _load_massachusetts_cousub_geo(force_refresh=force_refresh)
-    name_column = _first_existing_column(geo, ["NAMELSAD", "namelsad"])
-    selected = geo[geo[name_column].fillna("").astype(str).str.casefold().eq(target_name)].copy()
-    if selected.empty:
-        raise ValueError(f"Could not find a census municipal boundary for {city}.")
-    return _prepare_single_area_geography(selected, city=city, mapped_name=city)
 
 
 def _load_census_block_population(county_fips: str, force_refresh: bool = False) -> pd.DataFrame:
@@ -627,22 +590,11 @@ def _store_cached_bundles(bundles: dict[str, dict[str, object]]) -> None:
 
 def _build_all_bundles() -> dict[str, dict[str, object]]:
     blocks = _load_census_blocks(force_refresh=False)
-    belmont_geo = _load_census_municipality_geo("Belmont", force_refresh=False)
     cambridge_geo = _load_cambridge_geo(force_refresh=False)
     boston_geo = _load_boston_geo(force_refresh=False)
-    reading_geo = _load_census_municipality_geo("Reading", force_refresh=False)
     somerville_geo = _load_somerville_geo(force_refresh=False)
     combined_geo = gpd.GeoDataFrame(
-        pd.concat(
-            [
-                belmont_geo,
-                cambridge_geo,
-                boston_geo,
-                reading_geo,
-                somerville_geo,
-            ],
-            ignore_index=True,
-        ),
+        pd.concat([cambridge_geo, boston_geo, somerville_geo], ignore_index=True),
         geometry="geometry",
         crs=cambridge_geo.crs,
     )
@@ -655,9 +607,7 @@ def _build_all_bundles() -> dict[str, dict[str, object]]:
         dataset_id=CAMBRIDGE_CRIME_DATASET_ID,
         cache_name="cambridge_crime.csv",
     )
-    belmont_crime = _add_geokey_and_clean(load_belmont_crime(force_refresh=False))
     boston_crime_raw = _load_boston_crime_raw(force_refresh=False)
-    reading_crime = _add_geokey_and_clean(load_reading_crime(force_refresh=False))
     somerville_crime_raw = _fetch_socrata_csv(
         domain=SOMERVILLE_CRIME_DOMAIN,
         dataset_id=SOMERVILLE_CRIME_DATASET_ID,
@@ -681,12 +631,6 @@ def _build_all_bundles() -> dict[str, dict[str, object]]:
     )
 
     bundles: dict[str, dict[str, object]] = {}
-    bundles["Belmont"] = _build_city_bundle(
-        "Belmont",
-        belmont_crime,
-        belmont_geo,
-        population,
-    )
     bundles["Cambridge"] = _build_city_bundle(
         "Cambridge",
         cambridge_crime,
@@ -697,12 +641,6 @@ def _build_all_bundles() -> dict[str, dict[str, object]]:
         "Boston",
         boston_crime,
         boston_geo,
-        population,
-    )
-    bundles["Reading"] = _build_city_bundle(
-        "Reading",
-        reading_crime,
-        reading_geo,
         population,
     )
     bundles["Somerville"] = _build_city_bundle(
